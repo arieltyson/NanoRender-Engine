@@ -23,20 +23,62 @@ std::string readFileToString(const std::string& path)
 }
 } // namespace
 
-std::vector<ShaderSource> loadShaderSources(const std::vector<ShaderFileDescriptor>& descriptors)
+bool ShaderLoader::isCacheValid(const std::vector<ShaderFileDescriptor>& descriptors) const
 {
-    std::vector<ShaderSource> sources;
-    sources.reserve(descriptors.size());
-
-    for (const auto& [stage, path] : descriptors)
+    if (descriptors.size() != cachedDescriptors_.size())
     {
-        ShaderSource source{};
-        source.stage = stage;
-        source.source = readFileToString(path);
-        source.filePath = path;
-        sources.push_back(std::move(source));
+        return false;
     }
 
-    return sources;
+    for (std::size_t index = 0; index < descriptors.size(); ++index)
+    {
+        if (descriptors[index].stage != cachedDescriptors_[index].stage ||
+            descriptors[index].path != cachedDescriptors_[index].path)
+        {
+            return false;
+        }
+
+        const auto currentTimestamp = std::filesystem::last_write_time(descriptors[index].path);
+        if (currentTimestamp != cachedTimestamps_[index])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+ShaderLoader::Result ShaderLoader::load(const std::vector<ShaderFileDescriptor>& descriptors)
+{
+    if (isCacheValid(descriptors))
+    {
+        return {cachedSources_, false};
+    }
+
+    cachedSources_.clear();
+    cachedDescriptors_ = descriptors;
+    cachedTimestamps_.resize(descriptors.size());
+
+    cachedSources_.reserve(descriptors.size());
+    for (std::size_t index = 0; index < descriptors.size(); ++index)
+    {
+        const auto& descriptor = descriptors[index];
+        ShaderSource source{};
+        source.stage = descriptor.stage;
+        source.source = readFileToString(descriptor.path);
+        source.filePath = descriptor.path;
+        cachedSources_.push_back(std::move(source));
+
+        cachedTimestamps_[index] = std::filesystem::last_write_time(descriptor.path);
+    }
+
+    return {cachedSources_, true};
+}
+
+void ShaderLoader::clear()
+{
+    cachedSources_.clear();
+    cachedDescriptors_.clear();
+    cachedTimestamps_.clear();
 }
 } // namespace nre

@@ -67,12 +67,14 @@ int main()
                 renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
                 renderAPI_->setClearColor(0.1F, 0.12F, 0.25F, 1.0F);
 
-                const auto sources = nre::loadShaderSources({
+                shaderDescriptors_ = {
                     {nre::ShaderStage::Vertex, "assets/shaders/basic.vert"},
                     {nre::ShaderStage::Fragment, "assets/shaders/basic.frag"}
-                });
+                };
 
-                shader_ = renderAPI_->createShader(sources);
+                const auto loadResult = shaderLoader_.load(shaderDescriptors_);
+
+                shader_ = renderAPI_->createShader(loadResult.sources);
                 shader_->compile();
                 shader_->bindUniformBlock("FrameData", 0);
 
@@ -126,6 +128,23 @@ int main()
                 const float deltaTime = static_cast<float>(timer().deltaSeconds());
                 updateCamera(deltaTime);
                 updateFrameData();
+
+                const auto reloadResult = shaderLoader_.load(shaderDescriptors_);
+                if (reloadResult.reloaded && shader_)
+                {
+                    try
+                    {
+                        shader_->reload(reloadResult.sources);
+                        shader_->bindUniformBlock("FrameData", 0);
+                        shader_->bind();
+                        shader_->setMatrix4("uModel", nre::Matrix4::identity().dataPtr());
+                        shader_->unbind();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        std::cerr << "Shader reload failed: " << ex.what() << '\n';
+                    }
+                }
 
                 for (auto& pass : renderPasses_)
                 {
@@ -290,6 +309,8 @@ int main()
         GLuint frameUniformBuffer_ = 0;
         FrameData frameData_{};
         std::vector<RenderPass> renderPasses_;
+        nre::ShaderLoader shaderLoader_;
+        std::vector<nre::ShaderFileDescriptor> shaderDescriptors_;
     };
 
     ExampleApplication app(config);

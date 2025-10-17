@@ -1,15 +1,36 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "Renderer/Shader.h"
 
 namespace nre
 {
-// Descriptor binds a shader stage to a filesystem path containing the source.
-using ShaderFileDescriptor = std::pair<ShaderStage, std::string>;
+struct ShaderFileDescriptor
+{
+    ShaderStage stage;
+    std::string path;
+};
 
-std::vector<ShaderSource> loadShaderSources(const std::vector<ShaderFileDescriptor>& descriptors);
-}
+class ShaderLoader
+{
+public:
+    struct Result
+    {
+        const std::vector<ShaderSource>& sources;
+        bool reloaded = false;
+    };
+
+    Result load(const std::vector<ShaderFileDescriptor>& descriptors);
+    void clear();
+
+private:
+    std::vector<ShaderSource> cachedSources_;
+    std::vector<ShaderFileDescriptor> cachedDescriptors_;
+    std::vector<std::filesystem::file_time_type> cachedTimestamps_;
+
+    bool isCacheValid(const std::vector<ShaderFileDescriptor>& descriptors) const;
+};
+} // namespace nre

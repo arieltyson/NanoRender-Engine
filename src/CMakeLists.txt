@@ -3,6 +3,7 @@ set(NRE_CORE_SOURCES
     Core/Input.cpp
     Core/Timer.cpp
     Core/Window.cpp
+    Core/ResourceRegistry.cpp
     Renderer/RenderAPI.cpp
     Renderer/Shader.cpp
     Renderer/Material.cpp
@@ -49,6 +50,8 @@ target_sources(
         FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Application.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Input.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/ResourceHandle.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/ResourceRegistry.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Timer.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Window.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/RenderAPI.h
