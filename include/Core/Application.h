@@ -7,6 +7,7 @@ namespace nre
 {
 class Window;
 class Timer;
+class Input;
 
 struct ApplicationConfig
 {
@@ -42,6 +43,8 @@ protected:
     const Window& window() const noexcept;
     Timer& timer() noexcept;
     const Timer& timer() const noexcept;
+    Input& input() noexcept;
+    const Input& input() const noexcept;
 
 private:
     void pollEvents();
@@ -49,6 +52,7 @@ private:
     ApplicationConfig config_;
     std::unique_ptr<Window> window_;
     std::unique_ptr<Timer> timer_;
+    std::unique_ptr<Input> input_;
     bool running_ = false;
 };
 } // namespace nre

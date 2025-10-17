@@ -31,5 +31,6 @@ public:
     virtual void reload(const std::vector<ShaderSource>& sources) = 0;
     virtual void bind() const = 0;
     virtual void unbind() const = 0;
+    virtual void setMatrix4(std::string_view name, const float* data) = 0;
 };
 } // namespace nre

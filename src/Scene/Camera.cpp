@@ -10,7 +10,7 @@ namespace nre
 Camera::Camera()
 {
     setPerspective(60.0F, 16.0F / 9.0F, 0.1F, 1000.0F);
-    setView(Matrix4::identity());
+    lookAt({0.0F, 0.0F, 5.0F}, {0.0F, 0.0F, 0.0F}, {0.0F, 1.0F, 0.0F});
 }
 
 void Camera::setPerspective(float verticalFovDegrees, float aspectRatio, float nearPlane, float farPlane)
@@ -22,5 +22,13 @@ void Camera::setPerspective(float verticalFovDegrees, float aspectRatio, float n
 void Camera::setView(const Matrix4& viewMatrix)
 {
     view_ = viewMatrix;
+}
+
+void Camera::lookAt(const Vector3& eye, const Vector3& target, const Vector3& up)
+{
+    position_ = eye;
+    target_ = target;
+    up_ = up;
+    view_ = Matrix4::lookAt(eye, target, up);
 }
 } // namespace nre

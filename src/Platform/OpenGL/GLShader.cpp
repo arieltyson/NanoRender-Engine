@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -96,6 +97,20 @@ void GLShader::unbind() const
     glUseProgram(0);
 }
 
+void GLShader::setMatrix4(std::string_view name, const float* data)
+{
+    if (program_ == 0)
+    {
+        throw std::runtime_error("Attempted to set uniform on an uninitialized shader program.");
+    }
+
+    const int location = uniformLocation(name);
+    if (location >= 0)
+    {
+        glUniformMatrix4fv(location, 1, GL_FALSE, data);
+    }
+}
+
 unsigned int GLShader::compileStage(const ShaderSource& source) const
 {
     GLenum shaderType = 0;
@@ -148,7 +163,21 @@ void GLShader::destroyProgram() noexcept
     {
         glDeleteProgram(program_);
         program_ = 0;
+        uniformLocationCache_.clear();
     }
+}
+
+int GLShader::uniformLocation(std::string_view name)
+{
+    const std::string key{name};
+    if (const auto it = uniformLocationCache_.find(key); it != uniformLocationCache_.end())
+    {
+        return it->second;
+    }
+
+    const int location = glGetUniformLocation(program_, key.c_str());
+    uniformLocationCache_.emplace(key, location);
+    return location;
 }
 } // namespace nre
 

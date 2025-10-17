@@ -1,5 +1,6 @@
 set(NRE_CORE_SOURCES
     Core/Application.cpp
+    Core/Input.cpp
     Core/Timer.cpp
     Core/Window.cpp
     Renderer/RenderAPI.cpp
@@ -8,6 +9,8 @@ set(NRE_CORE_SOURCES
     Renderer/Mesh.cpp
     Renderer/Texture.cpp
     Renderer/CommandBuffer.cpp
+    Renderer/MeshFactory.cpp
+    Renderer/ShaderLoader.cpp
     Scene/SceneGraph.cpp
     Scene/Camera.cpp
     Scene/Transform.cpp
@@ -45,12 +48,15 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}/../include
         FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Application.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Input.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Timer.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Core/Window.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/RenderAPI.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Shader.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/ShaderLoader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Material.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Mesh.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/MeshFactory.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Texture.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/CommandBuffer.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Scene/SceneGraph.h

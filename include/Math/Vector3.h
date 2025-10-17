@@ -16,5 +16,22 @@ struct Vector3
 
     float& operator[](std::size_t index) noexcept;
     float operator[](std::size_t index) const noexcept;
+
+    Vector3 operator+(const Vector3& rhs) const noexcept;
+    Vector3 operator-(const Vector3& rhs) const noexcept;
+    Vector3 operator*(float scalar) const noexcept;
+    Vector3 operator/(float scalar) const noexcept;
+
+    Vector3& operator+=(const Vector3& rhs) noexcept;
+    Vector3& operator-=(const Vector3& rhs) noexcept;
+    Vector3& operator*=(float scalar) noexcept;
+    Vector3& operator/=(float scalar) noexcept;
+
+    float length() const noexcept;
+    float lengthSquared() const noexcept;
+    Vector3 normalized() const noexcept;
+
+    static float dot(const Vector3& lhs, const Vector3& rhs) noexcept;
+    static Vector3 cross(const Vector3& lhs, const Vector3& rhs) noexcept;
 };
 } // namespace nre

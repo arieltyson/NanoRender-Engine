@@ -1,5 +1,6 @@
 #include "Core/Application.h"
 
+#include "Core/Input.h"
 #include "Core/Timer.h"
 #include "Core/Window.h"
 
@@ -22,18 +23,31 @@ WindowConfig makeWindowConfig(const ApplicationConfig& config)
 Application::Application(ApplicationConfig config)
     : config_(std::move(config)),
       window_(std::make_unique<Window>(makeWindowConfig(config_))),
-      timer_(std::make_unique<Timer>())
+      timer_(std::make_unique<Timer>()),
+      input_(std::make_unique<Input>())
 {
     window_->setResizeCallback([this](int width, int height) {
         this->onResize(width, height);
     });
     window_->setKeyCallback([this](int key, int scancode, int action, int mods) {
+        if (input_)
+        {
+            input_->handleKeyEvent({key, scancode, action, mods});
+        }
         this->onKey(key, scancode, action, mods);
     });
     window_->setCursorPosCallback([this](double x, double y) {
+        if (input_)
+        {
+            input_->handleCursorPosition(x, y);
+        }
         this->onMouseMove(x, y);
     });
     window_->setMouseButtonCallback([this](int button, int action, int mods) {
+        if (input_)
+        {
+            input_->handleMouseButtonEvent({button, action, mods});
+        }
         this->onMouseButton(button, action, mods);
     });
 }
@@ -52,6 +66,10 @@ void Application::run()
 
     while (running_ && window_ && !window_->shouldClose())
     {
+        if (input_)
+        {
+            input_->update();
+        }
         pollEvents();
         timer_->tick();
         onUpdate();
@@ -94,6 +112,16 @@ Timer& Application::timer() noexcept
 const Timer& Application::timer() const noexcept
 {
     return *timer_;
+}
+
+Input& Application::input() noexcept
+{
+    return *input_;
+}
+
+const Input& Application::input() const noexcept
+{
+    return *input_;
 }
 
 void Application::pollEvents()

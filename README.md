@@ -37,6 +37,7 @@ Running `./build/examples/nanorender-example`:
 
 - When GLFW is installed → an 800×600 OpenGL window opens with a cleared background color.
 - Without GLFW → console prints `Failed to initialize rendering backend: OpenGL backend requires GLFW support but it was not detected.` and the app exits cleanly.
+- Use `W/A/S/D` to move, `Q/E` to move vertically while the camera orbits the triangle.
 
 ### Prerequisites 📋
 

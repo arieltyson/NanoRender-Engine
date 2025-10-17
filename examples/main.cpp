@@ -1,8 +1,15 @@
 #include "Core/Application.h"
+#include "Core/Input.h"
+#include "Core/Timer.h"
 #include "Core/Window.h"
+#include "Math/Matrix4.h"
+#include "Math/Vector3.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/MeshFactory.h"
 #include "Renderer/RenderAPI.h"
 #include "Renderer/Shader.h"
+#include "Renderer/ShaderLoader.h"
+#include "Scene/Camera.h"
 
 #include <cstdint>
 #include <exception>
@@ -10,6 +17,9 @@
 #include <memory>
 #include <vector>
 
+#if defined(NRE_USE_GLFW)
+#include <GLFW/glfw3.h>
+#endif
 int main()
 {
     nre::ApplicationConfig config;
@@ -35,46 +45,20 @@ int main()
                 renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
                 renderAPI_->setClearColor(0.1F, 0.12F, 0.25F, 1.0F);
 
-                const char* vertexSource = R"(#version 410 core
-layout(location = 0) in vec3 aPosition;
-layout(location = 1) in vec3 aNormal;
-layout(location = 2) in vec2 aTexCoord;
-
-out vec3 vColor;
-
-void main()
-{
-    gl_Position = vec4(aPosition, 1.0);
-    vColor = normalize(aNormal * 0.5 + 0.5);
-}
-)";
-
-                const char* fragmentSource = R"(#version 410 core
-in vec3 vColor;
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(vColor, 1.0);
-}
-)";
-
-                std::vector<nre::ShaderSource> sources{
-                    {nre::ShaderStage::Vertex, vertexSource},
-                    {nre::ShaderStage::Fragment, fragmentSource}
-                };
+                const auto sources = nre::loadShaderSources({
+                    {nre::ShaderStage::Vertex, "assets/shaders/basic.vert"},
+                    {nre::ShaderStage::Fragment, "assets/shaders/basic.frag"}
+                });
 
                 shader_ = renderAPI_->createShader(sources);
                 shader_->compile();
 
                 mesh_ = renderAPI_->createMesh();
-                std::vector<nre::Vertex> vertices{
-                    {{-0.6F, -0.6F, 0.0F}, {0.0F, 0.0F, 1.0F}, {0.0F, 0.0F}},
-                    {{0.0F, 0.6F, 0.0F}, {0.0F, 0.0F, 1.0F}, {0.5F, 1.0F}},
-                    {{0.6F, -0.6F, 0.0F}, {0.0F, 0.0F, 1.0F}, {1.0F, 0.0F}}
-                };
-                std::vector<std::uint32_t> indices{0U, 1U, 2U};
-                mesh_->upload(vertices, indices);
+                const auto meshData = nre::makeTriangle();
+                mesh_->upload(meshData.vertices, meshData.indices);
+
+                updateProjection();
+                updateCamera(0.0F);
             }
             catch (const std::exception& ex)
             {
@@ -90,9 +74,15 @@ void main()
             if (renderAPI_)
             {
                 renderAPI_->beginFrame();
+                const float deltaTime = static_cast<float>(timer().deltaSeconds());
+                updateCamera(deltaTime);
+
                 if (shader_ && mesh_)
                 {
                     shader_->bind();
+                    const nre::Matrix4 model = nre::Matrix4::identity();
+                    const nre::Matrix4 mvp = camera_.projection() * camera_.view() * model;
+                    shader_->setMatrix4("uMVP", mvp.dataPtr());
                     mesh_->draw();
                     shader_->unbind();
                 }
@@ -117,12 +107,74 @@ void main()
             {
                 renderAPI_->setViewport(width, height);
             }
+            updateProjection();
         }
 
     private:
+        void updateProjection()
+        {
+            const int fbWidth = window().framebufferWidth();
+            const int fbHeight = window().framebufferHeight();
+            if (fbWidth > 0 && fbHeight > 0)
+            {
+                const float aspect = static_cast<float>(fbWidth) / static_cast<float>(fbHeight);
+                camera_.setPerspective(60.0F, aspect, 0.1F, 1000.0F);
+            }
+        }
+
+        void updateCamera(float deltaTime)
+        {
+#if defined(NRE_USE_GLFW)
+            constexpr float moveSpeed = 2.0F;
+            const float velocity = moveSpeed * deltaTime;
+            auto& inputState = input();
+
+            const nre::Vector3 forward = (cameraTarget_ - cameraPosition_).normalized();
+            const nre::Vector3 right = nre::Vector3::cross(forward, cameraUp_).normalized();
+
+            if (inputState.isKeyDown(GLFW_KEY_W))
+            {
+                cameraPosition_ += forward * velocity;
+                cameraTarget_ += forward * velocity;
+            }
+            if (inputState.isKeyDown(GLFW_KEY_S))
+            {
+                cameraPosition_ -= forward * velocity;
+                cameraTarget_ -= forward * velocity;
+            }
+            if (inputState.isKeyDown(GLFW_KEY_A))
+            {
+                cameraPosition_ -= right * velocity;
+                cameraTarget_ -= right * velocity;
+            }
+            if (inputState.isKeyDown(GLFW_KEY_D))
+            {
+                cameraPosition_ += right * velocity;
+                cameraTarget_ += right * velocity;
+            }
+            if (inputState.isKeyDown(GLFW_KEY_Q))
+            {
+                cameraPosition_ -= cameraUp_ * velocity;
+                cameraTarget_ -= cameraUp_ * velocity;
+            }
+            if (inputState.isKeyDown(GLFW_KEY_E))
+            {
+                cameraPosition_ += cameraUp_ * velocity;
+                cameraTarget_ += cameraUp_ * velocity;
+            }
+#else
+            (void)deltaTime;
+#endif
+            camera_.lookAt(cameraPosition_, cameraTarget_, cameraUp_);
+        }
+
         std::unique_ptr<nre::RenderAPI> renderAPI_;
         std::unique_ptr<nre::Shader> shader_;
         std::unique_ptr<nre::Mesh> mesh_;
+        nre::Camera camera_;
+        nre::Vector3 cameraPosition_{0.0F, 0.0F, 2.0F};
+        nre::Vector3 cameraTarget_{0.0F, 0.0F, 0.0F};
+        nre::Vector3 cameraUp_{0.0F, 1.0F, 0.0F};
     };
 
     ExampleApplication app(config);
