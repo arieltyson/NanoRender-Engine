@@ -8,6 +8,7 @@
 #include "Renderer/MeshFactory.h"
 #include "Renderer/MeshCache.h"
 #include "Renderer/RenderAPI.h"
+#include "Renderer/RenderGraph.h"
 #include "Renderer/Shader.h"
 #include "Renderer/ShaderLoader.h"
 #include "Renderer/Texture.h"
@@ -46,12 +47,6 @@ int main()
         float padding[3] = {0.0F, 0.0F, 0.0F};
     };
 
-    struct RenderPass
-    {
-        std::string name;
-        std::function<void()> execute;
-    };
-
     class ExampleApplication : public nre::Application
     {
     public:
@@ -69,6 +64,9 @@ int main()
                 renderAPI_->initialize();
                 renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
                 renderAPI_->setClearColor(0.1F, 0.12F, 0.25F, 1.0F);
+
+                meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
+                textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
 
                 meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
                 textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
@@ -109,23 +107,36 @@ int main()
 
                 captureCursor(true);
 
-                renderPasses_.push_back(RenderPass{
+                nre::FrameRenderContext bootstrap{*renderAPI_, frameIndex_, 0.0, 0.0, this};
+                updateFrameData(bootstrap);
+
+                renderGraph_.clear();
+                renderGraph_.addPass({
+                    "FrameUniforms",
+                    nullptr,
+                    [this](nre::FrameRenderContext& context) {
+                        updateFrameData(context);
+                    }
+                });
+
+                renderGraph_.addPass({
                     "Geometry",
-                    [this]() {
+                    [this](nre::FrameRenderContext&) {
+                        if (texture_)
+                        {
+                            texture_->bind(0);
+                        }
+                    },
+                    [this](nre::FrameRenderContext&) {
                         if (!shader_ || !mesh_)
                         {
                             return;
                         }
                         shader_->bind();
-                        const nre::Matrix4 model = nre::Matrix4::identity();
-                        shader_->setMatrix4("uModel", model.dataPtr());
-                        if (texture_)
-                        {
-                            texture_->bind(0);
-                        }
                         mesh_->draw();
                         shader_->unbind();
-                    }});
+                    }
+                });
             }
             catch (const std::exception& ex)
             {
@@ -143,7 +154,6 @@ int main()
                 renderAPI_->beginFrame();
                 const float deltaTime = static_cast<float>(timer().deltaSeconds());
                 updateCamera(deltaTime);
-                updateFrameData();
 
                 const auto reloadResult = shaderLoader_.load(shaderDescriptors_);
                 if (reloadResult.reloaded && shader_)
@@ -163,10 +173,14 @@ int main()
                     }
                 }
 
-                for (auto& pass : renderPasses_)
-                {
-                    pass.execute();
-                }
+                nre::FrameRenderContext frameContext{
+                    *renderAPI_,
+                    frameIndex_++,
+                    deltaTime,
+                    timer().elapsedSeconds(),
+                    this
+                };
+                renderGraph_.execute(frameContext);
                 renderAPI_->endFrame();
             }
         }
@@ -314,10 +328,10 @@ int main()
             camera_.lookAt(cameraPosition_, cameraTarget_, cameraUp_);
         }
 
-        void updateFrameData()
+        void updateFrameData(const nre::FrameRenderContext& context)
         {
             frameData_.viewProjection = camera_.projection() * camera_.view();
-            frameData_.time = static_cast<float>(timer().elapsedSeconds());
+            frameData_.time = static_cast<float>(context.elapsedSeconds);
             glBindBuffer(GL_UNIFORM_BUFFER, frameUniformBuffer_);
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(FrameData), &frameData_);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -337,11 +351,12 @@ int main()
         bool cursorCaptured_ = false;
         GLuint frameUniformBuffer_ = 0;
         FrameData frameData_{};
-        std::vector<RenderPass> renderPasses_;
+        nre::RenderGraph renderGraph_;
         nre::ShaderLoader shaderLoader_;
         std::unique_ptr<nre::TextureLoader> textureLoader_;
         std::unique_ptr<nre::MeshCache> meshCache_;
         std::vector<nre::ShaderFileDescriptor> shaderDescriptors_;
+        std::uint64_t frameIndex_ = 0;
     };
 
     ExampleApplication app(config);

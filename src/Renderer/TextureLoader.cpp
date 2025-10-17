@@ -1,5 +1,6 @@
 #include "Renderer/TextureLoader.h"
 
+#include <cstdint>
 #include <fstream>
 #include <limits>
 #include <sstream>

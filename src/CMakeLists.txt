@@ -14,6 +14,7 @@ set(NRE_CORE_SOURCES
     Renderer/MeshCache.cpp
     Renderer/ShaderLoader.cpp
     Renderer/TextureLoader.cpp
+    Renderer/RenderGraph.cpp
     Scene/SceneGraph.cpp
     Scene/Camera.cpp
     Scene/Transform.cpp
@@ -65,6 +66,7 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Mesh.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/MeshCache.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/MeshFactory.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/RenderGraph.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Texture.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/TextureLoader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/CommandBuffer.h
