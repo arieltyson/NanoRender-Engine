@@ -25,7 +25,9 @@ struct RenderPass
     std::string name;
     std::function<void(FrameRenderContext&)> setup;
     std::function<void(FrameRenderContext&)> execute;
+    std::vector<ResourceHandle> dependencies;
     bool enabled = true;
+    bool measureTime = true;
 };
 
 class RenderGraph
@@ -40,13 +42,25 @@ public:
 
     void execute(FrameRenderContext& context);
 
+    struct PassStatistics
+    {
+        ResourceHandle handle;
+        std::string name;
+        bool enabled = false;
+        double lastDurationMs = 0.0;
+    };
+
+    const std::vector<PassStatistics>& statistics() const noexcept { return statistics_; }
+
 private:
     struct PassRecord
     {
         ResourceHandle handle;
         RenderPass pass;
+        double lastDurationMs = 0.0;
     };
 
     std::vector<PassRecord> passes_;
+    std::vector<PassStatistics> statistics_;
 };
 } // namespace nre

@@ -146,7 +146,8 @@ int main()
                         shader_->bind();
                         mesh_->draw();
                         shader_->unbind();
-                    }
+                    },
+                    {framePassHandle_}
                 });
 
 #if defined(NRE_USE_GLFW)
@@ -157,11 +158,18 @@ int main()
                         ImGui::Begin("Diagnostics", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
                         ImGui::Text("Frame: %llu", static_cast<unsigned long long>(context.frameIndex));
                         ImGui::Text("Delta: %.3f ms", context.deltaSeconds * 1000.0);
-                        ImGui::Text("FPS: %.1f", context.deltaSeconds > 0.0 ? 1.0f / static_cast<float>(context.deltaSeconds) : 0.0f);
-                        bool geometryEnabled = renderGraph_.isPassEnabled(geometryPassHandle_);
-                        if (ImGui::Checkbox("Draw Geometry", &geometryEnabled))
+                        const float fps = context.deltaSeconds > 0.0 ? 1.0f / static_cast<float>(context.deltaSeconds) : 0.0f;
+                        ImGui::Text("FPS: %.1f", fps);
+                        ImGui::Separator();
+                        for (const auto& stats : renderGraph_.statistics())
                         {
-                            renderGraph_.setPassEnabled(geometryPassHandle_, geometryEnabled);
+                            bool enabled = stats.enabled;
+                            if (ImGui::Checkbox(stats.name.c_str(), &enabled))
+                            {
+                                renderGraph_.setPassEnabled(stats.handle, enabled);
+                            }
+                            ImGui::SameLine();
+                            ImGui::Text("%.3f ms", stats.lastDurationMs);
                         }
                         ImGui::End();
                     }
