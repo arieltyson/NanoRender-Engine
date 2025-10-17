@@ -18,13 +18,17 @@
 #include <cmath>
 #include <cstdint>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <memory>
-#include <vector>
-#include <functional>
 #include <string>
+#include <vector>
+
+#include <imgui.h>
 
 #if defined(NRE_USE_GLFW)
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
 #endif
 
@@ -64,6 +68,13 @@ int main()
                 renderAPI_->initialize();
                 renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
                 renderAPI_->setClearColor(0.1F, 0.12F, 0.25F, 1.0F);
+
+#if defined(NRE_USE_GLFW)
+                ImGui::CreateContext();
+                ImGui::StyleColorsDark();
+                ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(window().nativeHandle()), true);
+                ImGui_ImplOpenGL3_Init("#version 410");
+#endif
 
                 meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
                 textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
@@ -111,7 +122,7 @@ int main()
                 updateFrameData(bootstrap);
 
                 renderGraph_.clear();
-                renderGraph_.addPass({
+                framePassHandle_ = renderGraph_.addPass({
                     "FrameUniforms",
                     nullptr,
                     [this](nre::FrameRenderContext& context) {
@@ -119,7 +130,7 @@ int main()
                     }
                 });
 
-                renderGraph_.addPass({
+                geometryPassHandle_ = renderGraph_.addPass({
                     "Geometry",
                     [this](nre::FrameRenderContext&) {
                         if (texture_)
@@ -137,6 +148,27 @@ int main()
                         shader_->unbind();
                     }
                 });
+
+#if defined(NRE_USE_GLFW)
+                uiPassHandle_ = renderGraph_.addPass({
+                    "Diagnostics",
+                    nullptr,
+                    [this](nre::FrameRenderContext& context) {
+                        ImGui::Begin("Diagnostics", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                        ImGui::Text("Frame: %llu", static_cast<unsigned long long>(context.frameIndex));
+                        ImGui::Text("Delta: %.3f ms", context.deltaSeconds * 1000.0);
+                        ImGui::Text("FPS: %.1f", context.deltaSeconds > 0.0 ? 1.0f / static_cast<float>(context.deltaSeconds) : 0.0f);
+                        bool geometryEnabled = renderGraph_.isPassEnabled(geometryPassHandle_);
+                        if (ImGui::Checkbox("Draw Geometry", &geometryEnabled))
+                        {
+                            renderGraph_.setPassEnabled(geometryPassHandle_, geometryEnabled);
+                        }
+                        ImGui::End();
+                    }
+                });
+#else
+                uiPassHandle_ = {};
+#endif
             }
             catch (const std::exception& ex)
             {
@@ -152,6 +184,11 @@ int main()
             if (renderAPI_)
             {
                 renderAPI_->beginFrame();
+#if defined(NRE_USE_GLFW)
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+#endif
                 const float deltaTime = static_cast<float>(timer().deltaSeconds());
                 updateCamera(deltaTime);
 
@@ -181,6 +218,10 @@ int main()
                     this
                 };
                 renderGraph_.execute(frameContext);
+#if defined(NRE_USE_GLFW)
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
                 renderAPI_->endFrame();
             }
         }
@@ -211,6 +252,11 @@ int main()
                 meshCache_->clear();
                 meshCache_.reset();
             }
+#if defined(NRE_USE_GLFW)
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext();
+#endif
         }
 
         void onResize(int width, int height) override
@@ -352,6 +398,9 @@ int main()
         GLuint frameUniformBuffer_ = 0;
         FrameData frameData_{};
         nre::RenderGraph renderGraph_;
+        nre::ResourceHandle framePassHandle_{};
+        nre::ResourceHandle geometryPassHandle_{};
+        nre::ResourceHandle uiPassHandle_{};
         nre::ShaderLoader shaderLoader_;
         std::unique_ptr<nre::TextureLoader> textureLoader_;
         std::unique_ptr<nre::MeshCache> meshCache_;
@@ -363,3 +412,6 @@ int main()
     app.run();
     return 0;
 }
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>

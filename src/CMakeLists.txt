@@ -15,6 +15,12 @@ set(NRE_CORE_SOURCES
     Renderer/ShaderLoader.cpp
     Renderer/TextureLoader.cpp
     Renderer/RenderGraph.cpp
+    ../external/imgui/imgui.cpp
+    ../external/imgui/imgui_draw.cpp
+    ../external/imgui/imgui_widgets.cpp
+    ../external/imgui/imgui_tables.cpp
+    ../external/imgui/imgui_impl_glfw.cpp
+    ../external/imgui/imgui_impl_opengl3.cpp
     Scene/SceneGraph.cpp
     Scene/Camera.cpp
     Scene/Transform.cpp
@@ -43,6 +49,8 @@ target_include_directories(
         $<INSTALL_INTERFACE:${NRE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../external
+        ${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include/ThirdParty/imgui
 )
 
 target_sources(
