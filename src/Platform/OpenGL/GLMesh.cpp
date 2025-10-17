@@ -86,6 +86,7 @@ void GLMesh::upload(const std::vector<Vertex>& vertices,
     glBindVertexArray(0);
 
     indexCount_ = static_cast<std::uint32_t>(indices.size());
+    vertexCount_ = static_cast<std::uint32_t>(vertices.size());
 }
 
 void GLMesh::draw() const

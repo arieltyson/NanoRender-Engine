@@ -14,6 +14,7 @@ layout(std140) uniform FrameData
 uniform mat4 uModel;
 
 out vec3 vColor;
+out vec2 vUV;
 
 void main()
 {
@@ -21,4 +22,5 @@ void main()
     vec3 baseColor = normalize(aNormal * 0.5 + 0.5);
     float pulse = 0.5 + 0.5 * sin(uTime);
     vColor = mix(baseColor, vec3(0.4, 0.6, 0.9), pulse);
+    vUV = aTexCoord;
 }

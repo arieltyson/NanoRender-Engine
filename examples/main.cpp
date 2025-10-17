@@ -6,9 +6,12 @@
 #include "Math/Vector3.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/MeshFactory.h"
+#include "Renderer/MeshCache.h"
 #include "Renderer/RenderAPI.h"
 #include "Renderer/Shader.h"
 #include "Renderer/ShaderLoader.h"
+#include "Renderer/Texture.h"
+#include "Renderer/TextureLoader.h"
 #include "Scene/Camera.h"
 
 #include <cmath>
@@ -67,6 +70,9 @@ int main()
                 renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
                 renderAPI_->setClearColor(0.1F, 0.12F, 0.25F, 1.0F);
 
+                meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
+                textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
+
                 shaderDescriptors_ = {
                     {nre::ShaderStage::Vertex, "assets/shaders/basic.vert"},
                     {nre::ShaderStage::Fragment, "assets/shaders/basic.frag"}
@@ -78,9 +84,14 @@ int main()
                 shader_->compile();
                 shader_->bindUniformBlock("FrameData", 0);
 
-                mesh_ = renderAPI_->createMesh();
-                const auto meshData = nre::makeTriangle();
-                mesh_->upload(meshData.vertices, meshData.indices);
+                mesh_ = meshCache_->loadFromGenerator("triangle", [] {
+                    return nre::makeTriangle();
+                });
+
+                if (textureLoader_)
+                {
+                    texture_ = textureLoader_->load("assets/textures/albedo.ppm");
+                }
 
                 updateProjection();
                 updateCamera(0.0F);
@@ -93,6 +104,7 @@ int main()
 
                 shader_->bind();
                 shader_->setMatrix4("uModel", nre::Matrix4::identity().dataPtr());
+                shader_->setInt("uAlbedo", 0);
                 shader_->unbind();
 
                 captureCursor(true);
@@ -107,6 +119,10 @@ int main()
                         shader_->bind();
                         const nre::Matrix4 model = nre::Matrix4::identity();
                         shader_->setMatrix4("uModel", model.dataPtr());
+                        if (texture_)
+                        {
+                            texture_->bind(0);
+                        }
                         mesh_->draw();
                         shader_->unbind();
                     }});
@@ -138,6 +154,7 @@ int main()
                         shader_->bindUniformBlock("FrameData", 0);
                         shader_->bind();
                         shader_->setMatrix4("uModel", nre::Matrix4::identity().dataPtr());
+                        shader_->setInt("uAlbedo", 0);
                         shader_->unbind();
                     }
                     catch (const std::exception& ex)
@@ -163,12 +180,23 @@ int main()
             }
             shader_.reset();
             mesh_.reset();
+            texture_.reset();
             if (frameUniformBuffer_ != 0)
             {
                 glDeleteBuffers(1, &frameUniformBuffer_);
                 frameUniformBuffer_ = 0;
             }
             captureCursor(false);
+            if (textureLoader_)
+            {
+                textureLoader_->clear();
+                textureLoader_.reset();
+            }
+            if (meshCache_)
+            {
+                meshCache_->clear();
+                meshCache_.reset();
+            }
         }
 
         void onResize(int width, int height) override
@@ -297,7 +325,8 @@ int main()
 
         std::unique_ptr<nre::RenderAPI> renderAPI_;
         std::unique_ptr<nre::Shader> shader_;
-        std::unique_ptr<nre::Mesh> mesh_;
+        std::shared_ptr<nre::Mesh> mesh_;
+        std::shared_ptr<nre::Texture> texture_;
         nre::Camera camera_;
         nre::Vector3 cameraPosition_{0.0F, 0.0F, 2.0F};
         nre::Vector3 cameraTarget_{0.0F, 0.0F, 1.0F};
@@ -310,6 +339,8 @@ int main()
         FrameData frameData_{};
         std::vector<RenderPass> renderPasses_;
         nre::ShaderLoader shaderLoader_;
+        std::unique_ptr<nre::TextureLoader> textureLoader_;
+        std::unique_ptr<nre::MeshCache> meshCache_;
         std::vector<nre::ShaderFileDescriptor> shaderDescriptors_;
     };
 

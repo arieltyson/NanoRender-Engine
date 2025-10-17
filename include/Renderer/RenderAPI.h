@@ -23,7 +23,9 @@ struct RenderCapabilities
 class CommandBuffer;
 class Mesh;
 class Shader;
+class Texture;
 struct ShaderSource;
+struct TextureDescriptor;
 
 class RenderAPI
 {
@@ -38,6 +40,7 @@ public:
     virtual void setClearColor(float r, float g, float b, float a) = 0;
     virtual std::unique_ptr<Mesh> createMesh() = 0;
     virtual std::unique_ptr<Shader> createShader(const std::vector<ShaderSource>& sources) = 0;
+    virtual std::unique_ptr<Texture> createTexture(const TextureDescriptor& descriptor) = 0;
     virtual RenderCapabilities capabilities() const noexcept = 0;
 
     static std::unique_ptr<RenderAPI> create(APIType api);

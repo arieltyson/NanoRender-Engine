@@ -3,6 +3,7 @@
 #include "Platform/OpenGL/GLContext.h"
 #include "Platform/OpenGL/GLMesh.h"
 #include "Platform/OpenGL/GLShader.h"
+#include "Platform/OpenGL/GLTexture.h"
 
 #include <memory>
 
@@ -80,6 +81,11 @@ std::unique_ptr<Mesh> GLRenderAPI::createMesh()
 std::unique_ptr<Shader> GLRenderAPI::createShader(const std::vector<ShaderSource>& sources)
 {
     return std::make_unique<GLShader>(sources);
+}
+
+std::unique_ptr<Texture> GLRenderAPI::createTexture(const TextureDescriptor& descriptor)
+{
+    return std::make_unique<GLTexture>(descriptor);
 }
 
 RenderCapabilities GLRenderAPI::capabilities() const noexcept

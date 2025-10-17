@@ -111,6 +111,20 @@ void GLShader::setMatrix4(std::string_view name, const float* data)
     }
 }
 
+void GLShader::setInt(std::string_view name, int value)
+{
+    if (program_ == 0)
+    {
+        throw std::runtime_error("Attempted to set uniform on an uninitialized shader program.");
+    }
+
+    const int location = uniformLocation(name);
+    if (location >= 0)
+    {
+        glUniform1i(location, value);
+    }
+}
+
 void GLShader::bindUniformBlock(std::string_view name, unsigned int binding)
 {
     if (program_ == 0)

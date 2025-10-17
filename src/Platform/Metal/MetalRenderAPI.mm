@@ -61,6 +61,11 @@ std::unique_ptr<Shader> MetalRenderAPI::createShader(const std::vector<ShaderSou
     throw std::runtime_error("Metal shader creation not implemented yet.");
 }
 
+std::unique_ptr<Texture> MetalRenderAPI::createTexture(const TextureDescriptor&)
+{
+    throw std::runtime_error("Metal texture creation not implemented yet.");
+}
+
 RenderCapabilities MetalRenderAPI::capabilities() const noexcept
 {
     RenderCapabilities caps{};

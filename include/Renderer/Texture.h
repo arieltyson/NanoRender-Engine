@@ -28,5 +28,8 @@ public:
     virtual void loadFromFile(const std::string& path) = 0;
     virtual void upload(const void* data, std::size_t size) = 0;
     virtual void bind(std::uint32_t slot) const = 0;
+    virtual std::uint32_t width() const noexcept = 0;
+    virtual std::uint32_t height() const noexcept = 0;
+    virtual TextureFormat format() const noexcept = 0;
 };
 } // namespace nre

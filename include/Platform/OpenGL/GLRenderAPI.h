@@ -20,6 +20,7 @@ public:
     void setClearColor(float r, float g, float b, float a) override;
     std::unique_ptr<Mesh> createMesh() override;
     std::unique_ptr<Shader> createShader(const std::vector<ShaderSource>& sources) override;
+    std::unique_ptr<Texture> createTexture(const TextureDescriptor& descriptor) override;
     RenderCapabilities capabilities() const noexcept override;
 
 private:

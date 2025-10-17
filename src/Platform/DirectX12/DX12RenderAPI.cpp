@@ -61,6 +61,11 @@ std::unique_ptr<Shader> DX12RenderAPI::createShader(const std::vector<ShaderSour
     throw std::runtime_error("DirectX 12 shader creation not implemented yet.");
 }
 
+std::unique_ptr<Texture> DX12RenderAPI::createTexture(const TextureDescriptor&)
+{
+    throw std::runtime_error("DirectX 12 texture creation not implemented yet.");
+}
+
 RenderCapabilities DX12RenderAPI::capabilities() const noexcept
 {
     RenderCapabilities caps{};

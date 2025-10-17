@@ -20,5 +20,7 @@ public:
     virtual void upload(const std::vector<Vertex>& vertices,
                         const std::vector<std::uint32_t>& indices) = 0;
     virtual void draw() const = 0;
+    virtual std::size_t indexCount() const noexcept = 0;
+    virtual std::size_t vertexCount() const noexcept = 0;
 };
 } // namespace nre

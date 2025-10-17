@@ -11,7 +11,9 @@ set(NRE_CORE_SOURCES
     Renderer/Texture.cpp
     Renderer/CommandBuffer.cpp
     Renderer/MeshFactory.cpp
+    Renderer/MeshCache.cpp
     Renderer/ShaderLoader.cpp
+    Renderer/TextureLoader.cpp
     Scene/SceneGraph.cpp
     Scene/Camera.cpp
     Scene/Transform.cpp
@@ -38,6 +40,8 @@ target_include_directories(
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
         $<INSTALL_INTERFACE:${NRE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 target_sources(
@@ -59,8 +63,10 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/ShaderLoader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Material.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Mesh.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/MeshCache.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/MeshFactory.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/Texture.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/TextureLoader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Renderer/CommandBuffer.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Scene/SceneGraph.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Scene/Camera.h
@@ -78,6 +84,7 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLContext.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLMesh.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLShader.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLTexture.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/Metal/MetalRenderAPI.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/Metal/MetalDevice.h
 )
@@ -90,6 +97,7 @@ if (NRE_ENABLE_OPENGL)
             Platform/OpenGL/GLContext.cpp
             Platform/OpenGL/GLMesh.cpp
             Platform/OpenGL/GLShader.cpp
+            Platform/OpenGL/GLTexture.cpp
     )
     target_compile_definitions(nanorender PUBLIC NRE_ENABLE_OPENGL)
     if (NOT NRE_GLFW_TARGET STREQUAL "")
@@ -145,6 +153,7 @@ endif()
 if (UNIX AND NOT APPLE)
     target_link_libraries(nanorender PUBLIC pthread)
 endif()
+
 
 install(
     TARGETS nanorender

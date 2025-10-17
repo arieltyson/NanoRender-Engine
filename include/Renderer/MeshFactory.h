@@ -14,4 +14,6 @@ struct MeshData
 };
 
 MeshData makeTriangle();
+MeshData makeFullscreenQuad();
+MeshData loadMeshFromFile(const std::string& path);
 }

@@ -61,6 +61,11 @@ std::unique_ptr<Shader> VKRenderAPI::createShader(const std::vector<ShaderSource
     throw std::runtime_error("Vulkan shader creation not implemented yet.");
 }
 
+std::unique_ptr<Texture> VKRenderAPI::createTexture(const TextureDescriptor&)
+{
+    throw std::runtime_error("Vulkan texture creation not implemented yet.");
+}
+
 RenderCapabilities VKRenderAPI::capabilities() const noexcept
 {
     RenderCapabilities caps{};
