@@ -4,6 +4,7 @@
 
 #if defined(NRE_USE_GLFW)
 #include <atomic>
+#include <iostream>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -18,9 +19,8 @@ std::atomic<int>& glfwRefCount()
 
 void glfwErrorCallback(int errorCode, const char* description)
 {
-    (void)errorCode;
-    (void)description;
-    // In a production build this should forward to the engine logger.
+    std::cerr << "GLFW error (" << errorCode << "): "
+              << (description != nullptr ? description : "<no description>") << '\n';
 }
 
 void retainGlfw()
@@ -112,8 +112,13 @@ void Window::initializeBackend()
     retainGlfw();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+#if defined(__APPLE__)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+#endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #if defined(__APPLE__)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
