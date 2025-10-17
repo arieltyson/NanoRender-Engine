@@ -1,0 +1,76 @@
+# ---- Core build outputs ----
+build/
+build-*/
+out/
+bin/
+lib/
+obj/
+*.obj
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.idb
+
+# ---- CMake intermediates ----
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+Testing/
+Makefile
+install_manifest.txt
+compile_commands.json
+CMakeScripts/
+
+# ---- IDE and project metadata ----
+.idea/
+.vscode/
+.vs/
+*.code-workspace
+*.VC.db
+*.VC.opendb
+
+# ---- Visual Studio specific ----
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.user
+*.suo
+*.ncb
+*.sdf
+*.opensdf
+Debug*/
+Release*/
+x64/
+x86/
+ipch/
+
+# ---- Xcode and Apple toolchain ----
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+.DS_Store
+
+# ---- Generated shader binaries ----
+*.spv
+*.metallib
+
+# ---- Logs, caches, and misc ----
+*.log
+*.cache
+*.tmp
+*.swp
+*.swo
+Thumbs.db
+
+# ---- Package managers ----
+vendor/
+third_party/
+external/
