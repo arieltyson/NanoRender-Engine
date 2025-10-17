@@ -11,14 +11,23 @@
 #include "Renderer/ShaderLoader.h"
 #include "Scene/Camera.h"
 
+#include <cmath>
 #include <cstdint>
 #include <exception>
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <functional>
+#include <string>
 
 #if defined(NRE_USE_GLFW)
 #include <GLFW/glfw3.h>
+#endif
+
+#if defined(__APPLE__)
+#include <OpenGL/gl3.h>
+#else
+#include <GL/gl.h>
 #endif
 int main()
 {
@@ -26,6 +35,19 @@ int main()
     config.title = "NanoRender Example";
     config.width = 800;
     config.height = 600;
+
+    struct alignas(16) FrameData
+    {
+        nre::Matrix4 viewProjection{nre::Matrix4::identity()};
+        float time = 0.0F;
+        float padding[3] = {0.0F, 0.0F, 0.0F};
+    };
+
+    struct RenderPass
+    {
+        std::string name;
+        std::function<void()> execute;
+    };
 
     class ExampleApplication : public nre::Application
     {
@@ -52,6 +74,7 @@ int main()
 
                 shader_ = renderAPI_->createShader(sources);
                 shader_->compile();
+                shader_->bindUniformBlock("FrameData", 0);
 
                 mesh_ = renderAPI_->createMesh();
                 const auto meshData = nre::makeTriangle();
@@ -59,6 +82,32 @@ int main()
 
                 updateProjection();
                 updateCamera(0.0F);
+
+                glGenBuffers(1, &frameUniformBuffer_);
+                glBindBuffer(GL_UNIFORM_BUFFER, frameUniformBuffer_);
+                glBufferData(GL_UNIFORM_BUFFER, sizeof(FrameData), nullptr, GL_DYNAMIC_DRAW);
+                glBindBufferBase(GL_UNIFORM_BUFFER, 0, frameUniformBuffer_);
+                glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+                shader_->bind();
+                shader_->setMatrix4("uModel", nre::Matrix4::identity().dataPtr());
+                shader_->unbind();
+
+                captureCursor(true);
+
+                renderPasses_.push_back(RenderPass{
+                    "Geometry",
+                    [this]() {
+                        if (!shader_ || !mesh_)
+                        {
+                            return;
+                        }
+                        shader_->bind();
+                        const nre::Matrix4 model = nre::Matrix4::identity();
+                        shader_->setMatrix4("uModel", model.dataPtr());
+                        mesh_->draw();
+                        shader_->unbind();
+                    }});
             }
             catch (const std::exception& ex)
             {
@@ -76,15 +125,11 @@ int main()
                 renderAPI_->beginFrame();
                 const float deltaTime = static_cast<float>(timer().deltaSeconds());
                 updateCamera(deltaTime);
+                updateFrameData();
 
-                if (shader_ && mesh_)
+                for (auto& pass : renderPasses_)
                 {
-                    shader_->bind();
-                    const nre::Matrix4 model = nre::Matrix4::identity();
-                    const nre::Matrix4 mvp = camera_.projection() * camera_.view() * model;
-                    shader_->setMatrix4("uMVP", mvp.dataPtr());
-                    mesh_->draw();
-                    shader_->unbind();
+                    pass.execute();
                 }
                 renderAPI_->endFrame();
             }
@@ -99,6 +144,12 @@ int main()
             }
             shader_.reset();
             mesh_.reset();
+            if (frameUniformBuffer_ != 0)
+            {
+                glDeleteBuffers(1, &frameUniformBuffer_);
+                frameUniformBuffer_ = 0;
+            }
+            captureCursor(false);
         }
 
         void onResize(int width, int height) override
@@ -110,7 +161,36 @@ int main()
             updateProjection();
         }
 
+        void onKey(int key, int scancode, int action, int mods) override
+        {
+            nre::Application::onKey(key, scancode, action, mods);
+#if defined(NRE_USE_GLFW)
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+            {
+                captureCursor(false);
+            }
+#endif
+        }
+
+        void onMouseButton(int button, int action, int mods) override
+        {
+            nre::Application::onMouseButton(button, action, mods);
+#if defined(NRE_USE_GLFW)
+            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !cursorCaptured_)
+            {
+                captureCursor(true);
+            }
+#endif
+        }
+
     private:
+        void captureCursor(bool capture)
+        {
+            cursorCaptured_ = capture;
+            window().setCursorMode(capture ? nre::CursorMode::Disabled : nre::CursorMode::Normal);
+            input().reset();
+        }
+
         void updateProjection()
         {
             const int fbWidth = window().framebufferWidth();
@@ -129,43 +209,71 @@ int main()
             const float velocity = moveSpeed * deltaTime;
             auto& inputState = input();
 
-            const nre::Vector3 forward = (cameraTarget_ - cameraPosition_).normalized();
+            const nre::Vector3 forward = cameraForward_.normalized();
             const nre::Vector3 right = nre::Vector3::cross(forward, cameraUp_).normalized();
 
             if (inputState.isKeyDown(GLFW_KEY_W))
             {
                 cameraPosition_ += forward * velocity;
-                cameraTarget_ += forward * velocity;
             }
             if (inputState.isKeyDown(GLFW_KEY_S))
             {
                 cameraPosition_ -= forward * velocity;
-                cameraTarget_ -= forward * velocity;
             }
             if (inputState.isKeyDown(GLFW_KEY_A))
             {
                 cameraPosition_ -= right * velocity;
-                cameraTarget_ -= right * velocity;
             }
             if (inputState.isKeyDown(GLFW_KEY_D))
             {
                 cameraPosition_ += right * velocity;
-                cameraTarget_ += right * velocity;
             }
             if (inputState.isKeyDown(GLFW_KEY_Q))
             {
                 cameraPosition_ -= cameraUp_ * velocity;
-                cameraTarget_ -= cameraUp_ * velocity;
             }
             if (inputState.isKeyDown(GLFW_KEY_E))
             {
                 cameraPosition_ += cameraUp_ * velocity;
-                cameraTarget_ += cameraUp_ * velocity;
+            }
+
+            if (cursorCaptured_)
+            {
+                constexpr float sensitivity = 0.1F;
+                yaw_ += static_cast<float>(inputState.cursorDeltaX()) * sensitivity;
+                pitch_ -= static_cast<float>(inputState.cursorDeltaY()) * sensitivity;
+                if (pitch_ > 89.0F)
+                {
+                    pitch_ = 89.0F;
+                }
+                if (pitch_ < -89.0F)
+                {
+                    pitch_ = -89.0F;
+                }
+
+                constexpr float degToRad = 3.14159265358979323846F / 180.0F;
+                const float yawRad = yaw_ * degToRad;
+                const float pitchRad = pitch_ * degToRad;
+                nre::Vector3 direction;
+                direction.x = std::cos(yawRad) * std::cos(pitchRad);
+                direction.y = std::sin(pitchRad);
+                direction.z = std::sin(yawRad) * std::cos(pitchRad);
+                cameraForward_ = direction.normalized();
             }
 #else
             (void)deltaTime;
 #endif
+            cameraTarget_ = cameraPosition_ + cameraForward_;
             camera_.lookAt(cameraPosition_, cameraTarget_, cameraUp_);
+        }
+
+        void updateFrameData()
+        {
+            frameData_.viewProjection = camera_.projection() * camera_.view();
+            frameData_.time = static_cast<float>(timer().elapsedSeconds());
+            glBindBuffer(GL_UNIFORM_BUFFER, frameUniformBuffer_);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(FrameData), &frameData_);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
         }
 
         std::unique_ptr<nre::RenderAPI> renderAPI_;
@@ -173,8 +281,15 @@ int main()
         std::unique_ptr<nre::Mesh> mesh_;
         nre::Camera camera_;
         nre::Vector3 cameraPosition_{0.0F, 0.0F, 2.0F};
-        nre::Vector3 cameraTarget_{0.0F, 0.0F, 0.0F};
+        nre::Vector3 cameraTarget_{0.0F, 0.0F, 1.0F};
         nre::Vector3 cameraUp_{0.0F, 1.0F, 0.0F};
+        nre::Vector3 cameraForward_{0.0F, 0.0F, -1.0F};
+        float yaw_ = -90.0F;
+        float pitch_ = 0.0F;
+        bool cursorCaptured_ = false;
+        GLuint frameUniformBuffer_ = 0;
+        FrameData frameData_{};
+        std::vector<RenderPass> renderPasses_;
     };
 
     ExampleApplication app(config);

@@ -21,6 +21,7 @@ public:
     void bind() const override;
     void unbind() const override;
     void setMatrix4(std::string_view name, const float* data) override;
+    void bindUniformBlock(std::string_view name, unsigned int binding) override;
 
 private:
     unsigned int compileStage(const ShaderSource& source) const;

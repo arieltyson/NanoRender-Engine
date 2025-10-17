@@ -32,5 +32,6 @@ public:
     virtual void bind() const = 0;
     virtual void unbind() const = 0;
     virtual void setMatrix4(std::string_view name, const float* data) = 0;
+    virtual void bindUniformBlock(std::string_view name, unsigned int binding) = 0;
 };
 } // namespace nre

@@ -39,6 +39,8 @@ public:
 
     double cursorX() const noexcept { return cursorX_; }
     double cursorY() const noexcept { return cursorY_; }
+    double cursorDeltaX() const noexcept { return cursorDeltaX_; }
+    double cursorDeltaY() const noexcept { return cursorDeltaY_; }
 
     void reset();
 
@@ -56,5 +58,10 @@ private:
     KeyStateMap mouseButtonStates_;
     double cursorX_ = 0.0;
     double cursorY_ = 0.0;
+    double lastCursorX_ = 0.0;
+    double lastCursorY_ = 0.0;
+    double cursorDeltaX_ = 0.0;
+    double cursorDeltaY_ = 0.0;
+    bool firstCursorEvent_ = true;
 };
 } // namespace nre

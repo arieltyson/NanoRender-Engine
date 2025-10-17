@@ -15,6 +15,9 @@ void Input::update()
         state.pressed = false;
         state.released = false;
     }
+
+    cursorDeltaX_ = 0.0;
+    cursorDeltaY_ = 0.0;
 }
 
 void Input::handleKeyEvent(const KeyEvent& event)
@@ -72,6 +75,21 @@ void Input::handleCursorPosition(double x, double y)
 {
     cursorX_ = x;
     cursorY_ = y;
+
+    if (firstCursorEvent_)
+    {
+        lastCursorX_ = x;
+        lastCursorY_ = y;
+        cursorDeltaX_ = 0.0;
+        cursorDeltaY_ = 0.0;
+        firstCursorEvent_ = false;
+        return;
+    }
+
+    cursorDeltaX_ += x - lastCursorX_;
+    cursorDeltaY_ += y - lastCursorY_;
+    lastCursorX_ = x;
+    lastCursorY_ = y;
 }
 
 bool Input::isKeyDown(int key) const noexcept
@@ -134,6 +152,11 @@ void Input::reset()
     mouseButtonStates_.clear();
     cursorX_ = 0.0;
     cursorY_ = 0.0;
+    lastCursorX_ = 0.0;
+    lastCursorY_ = 0.0;
+    cursorDeltaX_ = 0.0;
+    cursorDeltaY_ = 0.0;
+    firstCursorEvent_ = true;
 }
 
 } // namespace nre

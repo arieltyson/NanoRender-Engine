@@ -214,6 +214,17 @@ void Window::setMouseButtonCallback(MouseButtonCallback callback)
     mouseButtonCallback_ = std::move(callback);
 }
 
+void Window::setCursorMode(CursorMode mode)
+{
+    cursorMode_ = mode;
+#if defined(NRE_USE_GLFW)
+    if (auto* window = static_cast<GLFWwindow*>(handle_); window != nullptr)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, toGlfwMode(mode));
+    }
+#endif
+}
+
 void Window::handleResize(int width, int height)
 {
     framebufferWidth_ = width;
@@ -293,6 +304,38 @@ void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int
     if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
     {
         self->handleMouseButton(button, action, mods);
+    }
+}
+#endif
+
+#if defined(NRE_USE_GLFW)
+CursorMode Window::fromGlfwMode(int mode)
+{
+    switch (mode)
+    {
+    case GLFW_CURSOR_NORMAL:
+        return CursorMode::Normal;
+    case GLFW_CURSOR_HIDDEN:
+        return CursorMode::Hidden;
+    case GLFW_CURSOR_DISABLED:
+        return CursorMode::Disabled;
+    default:
+        return CursorMode::Normal;
+    }
+}
+
+int Window::toGlfwMode(CursorMode mode)
+{
+    switch (mode)
+    {
+    case CursorMode::Normal:
+        return GLFW_CURSOR_NORMAL;
+    case CursorMode::Hidden:
+        return GLFW_CURSOR_HIDDEN;
+    case CursorMode::Disabled:
+        return GLFW_CURSOR_DISABLED;
+    default:
+        return GLFW_CURSOR_NORMAL;
     }
 }
 #endif

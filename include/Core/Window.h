@@ -14,6 +14,13 @@ enum class WindowAPI
     GLFW
 };
 
+enum class CursorMode
+{
+    Normal,
+    Hidden,
+    Disabled
+};
+
 struct WindowConfig
 {
     std::string title = "NanoRender Engine";
@@ -54,6 +61,8 @@ public:
     void setKeyCallback(KeyCallback callback);
     void setCursorPosCallback(CursorPosCallback callback);
     void setMouseButtonCallback(MouseButtonCallback callback);
+    void setCursorMode(CursorMode mode);
+    CursorMode cursorMode() const noexcept { return cursorMode_; }
 
 private:
     void initializeBackend();
@@ -80,5 +89,10 @@ private:
     KeyCallback keyCallback_;
     CursorPosCallback cursorPosCallback_;
     MouseButtonCallback mouseButtonCallback_;
+#if defined(NRE_USE_GLFW)
+    static CursorMode fromGlfwMode(int mode);
+    static int toGlfwMode(CursorMode mode);
+#endif
+    CursorMode cursorMode_ = CursorMode::Normal;
 };
 } // namespace nre

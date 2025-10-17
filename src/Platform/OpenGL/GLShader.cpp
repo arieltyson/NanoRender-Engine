@@ -111,6 +111,21 @@ void GLShader::setMatrix4(std::string_view name, const float* data)
     }
 }
 
+void GLShader::bindUniformBlock(std::string_view name, unsigned int binding)
+{
+    if (program_ == 0)
+    {
+        throw std::runtime_error("Attempted to bind uniform block on an uninitialized shader program.");
+    }
+
+    const std::string key{name};
+    const GLuint blockIndex = glGetUniformBlockIndex(program_, key.c_str());
+    if (blockIndex != GL_INVALID_INDEX)
+    {
+        glUniformBlockBinding(program_, blockIndex, binding);
+    }
+}
+
 unsigned int GLShader::compileStage(const ShaderSource& source) const
 {
     GLenum shaderType = 0;
