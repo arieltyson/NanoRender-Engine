@@ -31,6 +31,7 @@ public:
     Window& operator=(Window&&) noexcept = delete;
 
     void pollEvents();
+    void swapBuffers();
     bool shouldClose() const noexcept;
     void* nativeHandle() noexcept;
     const void* nativeHandle() const noexcept;
@@ -38,6 +39,9 @@ public:
     const WindowConfig& config() const noexcept { return config_; }
 
 private:
+    void initializeBackend();
+    void shutdownBackend();
+
     WindowConfig config_;
     void* handle_ = nullptr;
     bool shouldClose_ = false;

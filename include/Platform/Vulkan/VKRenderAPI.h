@@ -16,9 +16,14 @@ public:
     void shutdown() override;
     void beginFrame() override;
     void endFrame() override;
+    void setViewport(int width, int height) override;
+    void setClearColor(float r, float g, float b, float a) override;
     RenderCapabilities capabilities() const noexcept override;
 
 private:
     VKDevice* device_ = nullptr;
+    int viewportWidth_ = 0;
+    int viewportHeight_ = 0;
+    float clearColor_[4] = {0.0F, 0.0F, 0.0F, 1.0F};
 };
 } // namespace nre

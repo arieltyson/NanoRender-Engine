@@ -34,6 +34,20 @@ void VKRenderAPI::beginFrame() {}
 
 void VKRenderAPI::endFrame() {}
 
+void VKRenderAPI::setViewport(int width, int height)
+{
+    viewportWidth_ = width;
+    viewportHeight_ = height;
+}
+
+void VKRenderAPI::setClearColor(float r, float g, float b, float a)
+{
+    clearColor_[0] = r;
+    clearColor_[1] = g;
+    clearColor_[2] = b;
+    clearColor_[3] = a;
+}
+
 RenderCapabilities VKRenderAPI::capabilities() const noexcept
 {
     RenderCapabilities caps{};

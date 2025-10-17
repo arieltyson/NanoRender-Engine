@@ -30,6 +30,8 @@ public:
     virtual void shutdown() = 0;
     virtual void beginFrame() = 0;
     virtual void endFrame() = 0;
+    virtual void setViewport(int width, int height) = 0;
+    virtual void setClearColor(float r, float g, float b, float a) = 0;
     virtual RenderCapabilities capabilities() const noexcept = 0;
 
     static std::unique_ptr<RenderAPI> create(APIType api);

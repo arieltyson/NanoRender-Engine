@@ -27,8 +27,10 @@ std::unique_ptr<RenderAPI> RenderAPI::create(APIType api)
     switch (api)
     {
     case APIType::OpenGL:
-#if defined(NRE_ENABLE_OPENGL)
+#if defined(NRE_ENABLE_OPENGL) && defined(NRE_USE_GLFW)
         return std::make_unique<GLRenderAPI>();
+#elif defined(NRE_ENABLE_OPENGL)
+        throw std::runtime_error("OpenGL backend requires GLFW support but it was not detected.");
 #else
         throw std::runtime_error("OpenGL backend is disabled in this build.");
 #endif

@@ -1,6 +1,6 @@
 #include "Math/Vector3.h"
 
-#include <stdexcept>
+#include <cassert>
 
 namespace nre
 {
@@ -15,6 +15,7 @@ float& Vector3::operator[](std::size_t index) noexcept
     case 2:
         return z;
     default:
+        assert(false && "Vector3 index out of range");
         return x;
     }
 }
@@ -30,6 +31,7 @@ float Vector3::operator[](std::size_t index) const noexcept
     case 2:
         return z;
     default:
+        assert(false && "Vector3 index out of range");
         return x;
     }
 }

@@ -34,6 +34,20 @@ void DX12RenderAPI::beginFrame() {}
 
 void DX12RenderAPI::endFrame() {}
 
+void DX12RenderAPI::setViewport(int width, int height)
+{
+    viewportWidth_ = width;
+    viewportHeight_ = height;
+}
+
+void DX12RenderAPI::setClearColor(float r, float g, float b, float a)
+{
+    clearColor_[0] = r;
+    clearColor_[1] = g;
+    clearColor_[2] = b;
+    clearColor_[3] = a;
+}
+
 RenderCapabilities DX12RenderAPI::capabilities() const noexcept
 {
     RenderCapabilities caps{};

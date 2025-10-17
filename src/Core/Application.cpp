@@ -43,6 +43,7 @@ void Application::run()
         pollEvents();
         timer_->tick();
         onUpdate();
+        window_->swapBuffers();
     }
 
     onShutdown();
