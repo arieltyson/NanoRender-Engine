@@ -1,5 +1,8 @@
 #include "Platform/DirectX12/DX12RenderAPI.h"
 
+#include <memory>
+#include <stdexcept>
+
 #include "Platform/DirectX12/DX12Device.h"
 
 namespace nre
@@ -46,6 +49,16 @@ void DX12RenderAPI::setClearColor(float r, float g, float b, float a)
     clearColor_[1] = g;
     clearColor_[2] = b;
     clearColor_[3] = a;
+}
+
+std::unique_ptr<Mesh> DX12RenderAPI::createMesh()
+{
+    throw std::runtime_error("DirectX 12 mesh creation not implemented yet.");
+}
+
+std::unique_ptr<Shader> DX12RenderAPI::createShader(const std::vector<ShaderSource>&)
+{
+    throw std::runtime_error("DirectX 12 shader creation not implemented yet.");
 }
 
 RenderCapabilities DX12RenderAPI::capabilities() const noexcept

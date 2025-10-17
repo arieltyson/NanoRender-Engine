@@ -18,6 +18,8 @@ public:
     void endFrame() override;
     void setViewport(int width, int height) override;
     void setClearColor(float r, float g, float b, float a) override;
+    std::unique_ptr<Mesh> createMesh() override;
+    std::unique_ptr<Shader> createShader(const std::vector<ShaderSource>& sources) override;
     RenderCapabilities capabilities() const noexcept override;
 
 private:

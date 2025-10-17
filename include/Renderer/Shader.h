@@ -28,6 +28,8 @@ public:
     virtual ~Shader();
 
     virtual void compile() = 0;
-    virtual void reload(std::string_view newSource) = 0;
+    virtual void reload(const std::vector<ShaderSource>& sources) = 0;
+    virtual void bind() const = 0;
+    virtual void unbind() const = 0;
 };
 } // namespace nre

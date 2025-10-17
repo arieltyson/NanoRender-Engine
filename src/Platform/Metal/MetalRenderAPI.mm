@@ -1,5 +1,8 @@
 #include "Platform/Metal/MetalRenderAPI.h"
 
+#include <memory>
+#include <stdexcept>
+
 #include "Platform/Metal/MetalDevice.h"
 
 namespace nre
@@ -46,6 +49,16 @@ void MetalRenderAPI::setClearColor(float r, float g, float b, float a)
     clearColor_[1] = g;
     clearColor_[2] = b;
     clearColor_[3] = a;
+}
+
+std::unique_ptr<Mesh> MetalRenderAPI::createMesh()
+{
+    throw std::runtime_error("Metal mesh creation not implemented yet.");
+}
+
+std::unique_ptr<Shader> MetalRenderAPI::createShader(const std::vector<ShaderSource>&)
+{
+    throw std::runtime_error("Metal shader creation not implemented yet.");
 }
 
 RenderCapabilities MetalRenderAPI::capabilities() const noexcept

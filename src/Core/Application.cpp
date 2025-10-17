@@ -24,6 +24,18 @@ Application::Application(ApplicationConfig config)
       window_(std::make_unique<Window>(makeWindowConfig(config_))),
       timer_(std::make_unique<Timer>())
 {
+    window_->setResizeCallback([this](int width, int height) {
+        this->onResize(width, height);
+    });
+    window_->setKeyCallback([this](int key, int scancode, int action, int mods) {
+        this->onKey(key, scancode, action, mods);
+    });
+    window_->setCursorPosCallback([this](double x, double y) {
+        this->onMouseMove(x, y);
+    });
+    window_->setMouseButtonCallback([this](int button, int action, int mods) {
+        this->onMouseButton(button, action, mods);
+    });
 }
 
 Application::~Application() = default;
@@ -55,6 +67,14 @@ void Application::onInit() {}
 void Application::onUpdate() {}
 
 void Application::onShutdown() {}
+
+void Application::onResize(int /*width*/, int /*height*/) {}
+
+void Application::onKey(int /*key*/, int /*scancode*/, int /*action*/, int /*mods*/) {}
+
+void Application::onMouseMove(double /*x*/, double /*y*/) {}
+
+void Application::onMouseButton(int /*button*/, int /*action*/, int /*mods*/) {}
 
 Window& Application::window() noexcept
 {

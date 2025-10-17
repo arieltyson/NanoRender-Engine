@@ -1,6 +1,7 @@
 #include "Core/Window.h"
 
 #include <stdexcept>
+#include <utility>
 
 #if defined(NRE_USE_GLFW)
 #include <atomic>
@@ -146,10 +147,26 @@ void Window::initializeBackend()
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(config_.vsync ? 1 : 0);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, Window::framebufferSizeCallback);
+    glfwSetKeyCallback(window, Window::keyCallback);
+    glfwSetCursorPosCallback(window, Window::cursorPosCallback);
+    glfwSetMouseButtonCallback(window, Window::mouseButtonCallback);
     handle_ = window;
     shouldClose_ = false;
     config_.width = width;
     config_.height = height;
+
+    int framebufferWidth = 0;
+    int framebufferHeight = 0;
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+    framebufferWidth_ = framebufferWidth;
+    framebufferHeight_ = framebufferHeight;
+
+    if (resizeCallback_)
+    {
+        resizeCallback_(framebufferWidth_, framebufferHeight_);
+    }
 #else
     (void)config_;
     handle_ = nullptr;
@@ -170,4 +187,113 @@ void Window::shutdownBackend()
     handle_ = nullptr;
 #endif
 }
+
+void Window::setResizeCallback(ResizeCallback callback)
+{
+    resizeCallback_ = std::move(callback);
+#if defined(NRE_USE_GLFW)
+    if (framebufferWidth_ > 0 && framebufferHeight_ > 0 && resizeCallback_)
+    {
+        resizeCallback_(framebufferWidth_, framebufferHeight_);
+    }
+#endif
+}
+
+void Window::setKeyCallback(KeyCallback callback)
+{
+    keyCallback_ = std::move(callback);
+}
+
+void Window::setCursorPosCallback(CursorPosCallback callback)
+{
+    cursorPosCallback_ = std::move(callback);
+}
+
+void Window::setMouseButtonCallback(MouseButtonCallback callback)
+{
+    mouseButtonCallback_ = std::move(callback);
+}
+
+void Window::handleResize(int width, int height)
+{
+    framebufferWidth_ = width;
+    framebufferHeight_ = height;
+
+#if defined(NRE_USE_GLFW)
+    int windowWidth = 0;
+    int windowHeight = 0;
+    if (auto* window = static_cast<GLFWwindow*>(handle_); window != nullptr)
+    {
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    }
+    if (windowWidth > 0 && windowHeight > 0)
+    {
+        config_.width = windowWidth;
+        config_.height = windowHeight;
+    }
+#endif
+
+    if (resizeCallback_)
+    {
+        resizeCallback_(framebufferWidth_, framebufferHeight_);
+    }
+}
+
+void Window::handleKey(int key, int scancode, int action, int mods)
+{
+    if (keyCallback_)
+    {
+        keyCallback_(key, scancode, action, mods);
+    }
+}
+
+void Window::handleCursorPos(double x, double y)
+{
+    if (cursorPosCallback_)
+    {
+        cursorPosCallback_(x, y);
+    }
+}
+
+void Window::handleMouseButton(int button, int action, int mods)
+{
+    if (mouseButtonCallback_)
+    {
+        mouseButtonCallback_(button, action, mods);
+    }
+}
+
+#if defined(NRE_USE_GLFW)
+void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height)
+{
+    if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
+    {
+        self->handleResize(width, height);
+    }
+}
+
+void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
+    {
+        self->handleKey(key, scancode, action, mods);
+    }
+}
+
+void Window::cursorPosCallback(GLFWwindow* window, double x, double y)
+{
+    if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
+    {
+        self->handleCursorPos(x, y);
+    }
+}
+
+void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window)))
+    {
+        self->handleMouseButton(button, action, mods);
+    }
+}
+#endif
 } // namespace nre

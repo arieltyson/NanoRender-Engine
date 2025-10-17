@@ -1,6 +1,10 @@
 #include "Platform/OpenGL/GLRenderAPI.h"
 
 #include "Platform/OpenGL/GLContext.h"
+#include "Platform/OpenGL/GLMesh.h"
+#include "Platform/OpenGL/GLShader.h"
+
+#include <memory>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -28,6 +32,8 @@ void GLRenderAPI::initialize()
     {
         context_ = new GLContext();
         context_->initialize();
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
     }
 }
 
@@ -64,6 +70,16 @@ void GLRenderAPI::setClearColor(float r, float g, float b, float a)
     clearColor_[1] = g;
     clearColor_[2] = b;
     clearColor_[3] = a;
+}
+
+std::unique_ptr<Mesh> GLRenderAPI::createMesh()
+{
+    return std::make_unique<GLMesh>();
+}
+
+std::unique_ptr<Shader> GLRenderAPI::createShader(const std::vector<ShaderSource>& sources)
+{
+    return std::make_unique<GLShader>(sources);
 }
 
 RenderCapabilities GLRenderAPI::capabilities() const noexcept

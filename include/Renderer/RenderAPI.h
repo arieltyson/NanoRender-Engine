@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 namespace nre
 {
@@ -20,6 +21,9 @@ struct RenderCapabilities
 };
 
 class CommandBuffer;
+class Mesh;
+class Shader;
+struct ShaderSource;
 
 class RenderAPI
 {
@@ -32,6 +36,8 @@ public:
     virtual void endFrame() = 0;
     virtual void setViewport(int width, int height) = 0;
     virtual void setClearColor(float r, float g, float b, float a) = 0;
+    virtual std::unique_ptr<Mesh> createMesh() = 0;
+    virtual std::unique_ptr<Shader> createShader(const std::vector<ShaderSource>& sources) = 0;
     virtual RenderCapabilities capabilities() const noexcept = 0;
 
     static std::unique_ptr<RenderAPI> create(APIType api);

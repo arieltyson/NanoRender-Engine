@@ -33,6 +33,10 @@ protected:
     virtual void onInit();
     virtual void onUpdate();
     virtual void onShutdown();
+    virtual void onResize(int width, int height);
+    virtual void onKey(int key, int scancode, int action, int mods);
+    virtual void onMouseMove(double x, double y);
+    virtual void onMouseButton(int button, int action, int mods);
 
     Window& window() noexcept;
     const Window& window() const noexcept;

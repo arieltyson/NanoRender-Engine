@@ -67,6 +67,8 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/Vulkan/VKDevice.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLRenderAPI.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLContext.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLMesh.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/OpenGL/GLShader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/Metal/MetalRenderAPI.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../include/Platform/Metal/MetalDevice.h
 )
@@ -77,6 +79,8 @@ if (NRE_ENABLE_OPENGL)
         PRIVATE
             Platform/OpenGL/GLRenderAPI.cpp
             Platform/OpenGL/GLContext.cpp
+            Platform/OpenGL/GLMesh.cpp
+            Platform/OpenGL/GLShader.cpp
     )
     target_compile_definitions(nanorender PUBLIC NRE_ENABLE_OPENGL)
     if (NOT NRE_GLFW_TARGET STREQUAL "")

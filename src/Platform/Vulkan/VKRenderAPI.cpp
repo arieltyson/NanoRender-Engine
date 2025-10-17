@@ -1,5 +1,8 @@
 #include "Platform/Vulkan/VKRenderAPI.h"
 
+#include <memory>
+#include <stdexcept>
+
 #include "Platform/Vulkan/VKDevice.h"
 
 namespace nre
@@ -46,6 +49,16 @@ void VKRenderAPI::setClearColor(float r, float g, float b, float a)
     clearColor_[1] = g;
     clearColor_[2] = b;
     clearColor_[3] = a;
+}
+
+std::unique_ptr<Mesh> VKRenderAPI::createMesh()
+{
+    throw std::runtime_error("Vulkan mesh creation not implemented yet.");
+}
+
+std::unique_ptr<Shader> VKRenderAPI::createShader(const std::vector<ShaderSource>&)
+{
+    throw std::runtime_error("Vulkan shader creation not implemented yet.");
 }
 
 RenderCapabilities VKRenderAPI::capabilities() const noexcept
