@@ -1,10 +1,8 @@
 # NanoRender Engine 🎮🔥
-A cross-platform real-time graphics pipeline built with modern C++17
-=======
 
+# A cross-platform real-time graphics pipeline built with modern C++17
 
 ⚙️ Engineered for multi-API rendering across DirectX 12, Vulkan, OpenGL, and Metal
-
 
 # Rendering Immersive Experiences at Scale 🌐
 
@@ -15,6 +13,30 @@ NanoRender Engine demonstrates unified graphics programming concepts through a s
 ## Demo:
 
 Coming soon.
+
+## Quickstart 🧭
+
+The snippet below builds the engine and runs the sample application. Copy it into a terminal from the repository root.
+
+```bash
+cmake -S . -B build                                # Configure the project
+cmake --build build                                # Compile library + example
+./build/examples/nanorender-example                # Launch the sample app
+```
+
+### Expected Output
+
+During `cmake --build build` you should see compilation progress culminating in:
+
+```
+[100%] Linking CXX executable nanorender-example
+[100%] Built target nanorender_example
+```
+
+Running `./build/examples/nanorender-example`:
+
+- When GLFW is installed → an 800×600 OpenGL window opens with a cleared background color.
+- Without GLFW → console prints `Failed to initialize rendering backend: OpenGL backend requires GLFW support but it was not detected.` and the app exits cleanly.
 
 ### Prerequisites 📋
 
