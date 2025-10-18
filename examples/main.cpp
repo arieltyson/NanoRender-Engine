@@ -47,8 +47,10 @@ int main()
     struct alignas(16) FrameData
     {
         nre::Matrix4 viewProjection{nre::Matrix4::identity()};
-        float time = 0.0F;
-        float padding[3] = {0.0F, 0.0F, 0.0F};
+        nre::Matrix4 view{nre::Matrix4::identity()};
+        float cameraPositionTime[4] = {0.0F, 0.0F, 0.0F, 0.0F};
+        float lightDirection[4] = {0.0F, -1.0F, 0.0F, 0.0F};
+        float lightColor[4] = {1.0F, 1.0F, 1.0F, 0.1F};
     };
 
     class ExampleApplication : public nre::Application
@@ -176,6 +178,12 @@ int main()
                             ImGui::SameLine();
                             ImGui::Text("%.3f ms", stats.lastDurationMs);
                         }
+                        ImGui::Separator();
+                        ImGui::Text("Lighting");
+                        ImGui::SliderFloat3("Direction", &lightingSettings_.direction.x, -1.0F, 1.0F);
+                        ImGui::SliderFloat("Intensity", &lightingSettings_.intensity, 0.0F, 5.0F);
+                        ImGui::SliderFloat("Ambient", &lightingSettings_.ambient, 0.0F, 1.0F);
+                        ImGui::ColorEdit3("Color", &lightingSettings_.color.x);
                         ImGui::End();
                     },
                     {frameUniformResource_, swapchainResource_},
@@ -392,7 +400,27 @@ int main()
         void updateFrameData(const nre::FrameRenderContext& context)
         {
             frameData_.viewProjection = camera_.projection() * camera_.view();
-            frameData_.time = static_cast<float>(context.elapsedSeconds);
+            frameData_.view = camera_.view();
+            frameData_.cameraPositionTime[0] = cameraPosition_.x;
+            frameData_.cameraPositionTime[1] = cameraPosition_.y;
+            frameData_.cameraPositionTime[2] = cameraPosition_.z;
+            frameData_.cameraPositionTime[3] = static_cast<float>(context.elapsedSeconds);
+
+            auto direction = lightingSettings_.direction.normalized();
+            if (direction.lengthSquared() == 0.0F)
+            {
+                direction = nre::Vector3(0.0F, -1.0F, 0.0F);
+            }
+            frameData_.lightDirection[0] = direction.x;
+            frameData_.lightDirection[1] = direction.y;
+            frameData_.lightDirection[2] = direction.z;
+            frameData_.lightDirection[3] = 0.0F;
+
+            frameData_.lightColor[0] = lightingSettings_.color.x * lightingSettings_.intensity;
+            frameData_.lightColor[1] = lightingSettings_.color.y * lightingSettings_.intensity;
+            frameData_.lightColor[2] = lightingSettings_.color.z * lightingSettings_.intensity;
+            frameData_.lightColor[3] = lightingSettings_.ambient;
+
             glBindBuffer(GL_UNIFORM_BUFFER, frameUniformBuffer_);
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(FrameData), &frameData_);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -423,6 +451,14 @@ int main()
         std::unique_ptr<nre::MeshCache> meshCache_;
         std::vector<nre::ShaderFileDescriptor> shaderDescriptors_;
         std::uint64_t frameIndex_ = 0;
+
+        struct LightingSettings
+        {
+            nre::Vector3 direction{-0.3F, -1.0F, -0.2F};
+            float intensity = 1.0F;
+            nre::Vector3 color{1.0F, 1.0F, 1.0F};
+            float ambient = 0.1F;
+        } lightingSettings_;
     };
 
     ExampleApplication app(config);

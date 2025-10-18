@@ -6,10 +6,20 @@
 #include <string>
 #include <vector>
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#endif
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #endif
 #include <stb_image.h>
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #include "Renderer/RenderAPI.h"
 #include "Renderer/Texture.h"

@@ -7,20 +7,24 @@ layout(location = 2) in vec2 aTexCoord;
 layout(std140) uniform FrameData
 {
     mat4 uViewProjection;
-    float uTime;
-    vec3 uPadding;
+    mat4 uView;
+    vec4 uCameraPositionTime;
+    vec4 uLightDirection;
+    vec4 uLightColor;
 };
 
 uniform mat4 uModel;
 
-out vec3 vColor;
+out vec3 vWorldPos;
+out vec3 vNormal;
 out vec2 vUV;
 
 void main()
 {
-    gl_Position = uViewProjection * uModel * vec4(aPosition, 1.0);
-    vec3 baseColor = normalize(aNormal * 0.5 + 0.5);
-    float pulse = 0.5 + 0.5 * sin(uTime);
-    vColor = mix(baseColor, vec3(0.4, 0.6, 0.9), pulse);
+    vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+    gl_Position = uViewProjection * worldPosition;
+    vWorldPos = worldPosition.xyz;
+    mat3 normalMatrix = mat3(uModel);
+    vNormal = normalize(normalMatrix * aNormal);
     vUV = aTexCoord;
 }
