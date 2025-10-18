@@ -21,6 +21,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -81,9 +82,6 @@ int main()
                 meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
                 textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
 
-                meshCache_ = std::make_unique<nre::MeshCache>(*renderAPI_);
-                textureLoader_ = std::make_unique<nre::TextureLoader>(*renderAPI_);
-
                 shaderDescriptors_ = {
                     {nre::ShaderStage::Vertex, "assets/shaders/basic.vert"},
                     {nre::ShaderStage::Fragment, "assets/shaders/basic.frag"}
@@ -97,6 +95,9 @@ int main()
 
                 mesh_ = meshCache_->loadFromGenerator("triangle", [] {
                     return nre::makeTriangle();
+                });
+                fullscreenQuad_ = meshCache_->loadFromGenerator("fullscreen_quad", [] {
+                    return nre::makeFullscreenQuad();
                 });
 
                 if (textureLoader_)
@@ -120,12 +121,27 @@ int main()
 
                 captureCursor(true);
 
+                presentShaderDescriptors_ = {
+                    {nre::ShaderStage::Vertex, "assets/shaders/present.vert"},
+                    {nre::ShaderStage::Fragment, "assets/shaders/present.frag"}
+                };
+                const auto presentSources = presentShaderLoader_.load(presentShaderDescriptors_);
+                presentShader_ = renderAPI_->createShader(presentSources.sources);
+                presentShader_->compile();
+                presentShader_->bind();
+                presentShader_->setInt("uScene", 0);
+                presentShader_->unbind();
+
+                ensureOffscreenTargets(window().framebufferWidth(), window().framebufferHeight());
+
                 nre::FrameRenderContext bootstrap{*renderAPI_, frameIndex_, 0.0, 0.0, this};
                 updateFrameData(bootstrap);
 
                 renderGraph_.clear();
                 frameUniformResource_ = renderGraph_.addResource({"FrameDataUBO", nre::RenderResourceType::UniformBuffer, true});
                 swapchainResource_ = renderGraph_.addResource({"SwapchainColor", nre::RenderResourceType::ColorTarget, true});
+                offscreenColorResource_ = renderGraph_.addResource({"OffscreenColor", nre::RenderResourceType::ColorTarget, false});
+                offscreenDepthResource_ = renderGraph_.addResource({"OffscreenDepth", nre::RenderResourceType::DepthTarget, false});
                 framePassHandle_ = renderGraph_.addPass({
                     "FrameUniforms",
                     nullptr,
@@ -139,6 +155,12 @@ int main()
                 geometryPassHandle_ = renderGraph_.addPass({
                     "Geometry",
                     [this](nre::FrameRenderContext&) {
+                        ensureOffscreenTargets(window().framebufferWidth(), window().framebufferHeight());
+                        glBindFramebuffer(GL_FRAMEBUFFER, offscreenFBO_);
+                        glViewport(0, 0, offscreenWidth_, offscreenHeight_);
+                        glEnable(GL_DEPTH_TEST);
+                        glClearColor(0.1F, 0.12F, 0.25F, 1.0F);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                         if (texture_)
                         {
                             texture_->bind(0);
@@ -152,12 +174,37 @@ int main()
                         shader_->bind();
                         mesh_->draw();
                         shader_->unbind();
+                        glBindFramebuffer(GL_FRAMEBUFFER, 0);
                     },
                     {frameUniformResource_},
-                    {swapchainResource_}
+                    {offscreenColorResource_, offscreenDepthResource_},
+                    {framePassHandle_}
                 });
 
 #if defined(NRE_USE_GLFW)
+                presentPassHandle_ = renderGraph_.addPass({
+                    "Present",
+                    [this](nre::FrameRenderContext&) {
+                        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                        renderAPI_->setViewport(window().framebufferWidth(), window().framebufferHeight());
+                        glDisable(GL_DEPTH_TEST);
+                    },
+                    [this](nre::FrameRenderContext&) {
+                        if (!presentShader_ || !fullscreenQuad_)
+                        {
+                            return;
+                        }
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, offscreenColorTex_);
+                        presentShader_->bind();
+                        fullscreenQuad_->draw();
+                        presentShader_->unbind();
+                    },
+                    {offscreenColorResource_},
+                    {swapchainResource_},
+                    {geometryPassHandle_}
+                });
+
                 uiPassHandle_ = renderGraph_.addPass({
                     "Diagnostics",
                     nullptr,
@@ -187,7 +234,8 @@ int main()
                         ImGui::End();
                     },
                     {frameUniformResource_, swapchainResource_},
-                    {swapchainResource_}
+                    {swapchainResource_},
+                    {presentPassHandle_}
                 });
 #else
                 uiPassHandle_ = {};
@@ -233,6 +281,22 @@ int main()
                     }
                 }
 
+                const auto presentReload = presentShaderLoader_.load(presentShaderDescriptors_);
+                if (presentReload.reloaded && presentShader_)
+                {
+                    try
+                    {
+                        presentShader_->reload(presentReload.sources);
+                        presentShader_->bind();
+                        presentShader_->setInt("uScene", 0);
+                        presentShader_->unbind();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        std::cerr << "Present shader reload failed: " << ex.what() << '\n';
+                    }
+                }
+
                 nre::FrameRenderContext frameContext{
                     *renderAPI_,
                     frameIndex_++,
@@ -259,6 +323,8 @@ int main()
             shader_.reset();
             mesh_.reset();
             texture_.reset();
+            presentShader_.reset();
+            fullscreenQuad_.reset();
             if (frameUniformBuffer_ != 0)
             {
                 glDeleteBuffers(1, &frameUniformBuffer_);
@@ -275,6 +341,7 @@ int main()
                 meshCache_->clear();
                 meshCache_.reset();
             }
+            destroyOffscreenTargets();
 #if defined(NRE_USE_GLFW)
             ImGui_ImplOpenGL3_Shutdown();
             ImGui_ImplGlfw_Shutdown();
@@ -288,6 +355,7 @@ int main()
             {
                 renderAPI_->setViewport(width, height);
             }
+            ensureOffscreenTargets(width, height);
             updateProjection();
         }
 
@@ -450,6 +518,7 @@ int main()
         std::unique_ptr<nre::TextureLoader> textureLoader_;
         std::unique_ptr<nre::MeshCache> meshCache_;
         std::vector<nre::ShaderFileDescriptor> shaderDescriptors_;
+        std::vector<nre::ShaderFileDescriptor> presentShaderDescriptors_;
         std::uint64_t frameIndex_ = 0;
 
         struct LightingSettings
@@ -459,6 +528,93 @@ int main()
             nre::Vector3 color{1.0F, 1.0F, 1.0F};
             float ambient = 0.1F;
         } lightingSettings_;
+
+        nre::ResourceHandle offscreenColorResource_{};
+        nre::ResourceHandle offscreenDepthResource_{};
+        nre::ResourceHandle presentPassHandle_{};
+
+        std::unique_ptr<nre::Shader> presentShader_;
+        nre::ShaderLoader presentShaderLoader_;
+        std::shared_ptr<nre::Mesh> fullscreenQuad_;
+
+        GLuint offscreenFBO_ = 0;
+        GLuint offscreenColorTex_ = 0;
+        GLuint offscreenDepthRbo_ = 0;
+        int offscreenWidth_ = 0;
+        int offscreenHeight_ = 0;
+
+        void ensureOffscreenTargets(int width, int height)
+        {
+#if defined(NRE_USE_GLFW)
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            if (offscreenFBO_ != 0 && width == offscreenWidth_ && height == offscreenHeight_)
+            {
+                return;
+            }
+
+            destroyOffscreenTargets();
+
+            offscreenWidth_ = width;
+            offscreenHeight_ = height;
+
+            glGenFramebuffers(1, &offscreenFBO_);
+            glBindFramebuffer(GL_FRAMEBUFFER, offscreenFBO_);
+
+            glGenTextures(1, &offscreenColorTex_);
+            glBindTexture(GL_TEXTURE_2D, offscreenColorTex_);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenColorTex_, 0);
+
+            glGenRenderbuffers(1, &offscreenDepthRbo_);
+            glBindRenderbuffer(GL_RENDERBUFFER, offscreenDepthRbo_);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, offscreenDepthRbo_);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                throw std::runtime_error("Offscreen framebuffer is incomplete");
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+#else
+            (void)width;
+            (void)height;
+#endif
+        }
+
+        void destroyOffscreenTargets()
+        {
+#if defined(NRE_USE_GLFW)
+            if (offscreenDepthRbo_ != 0)
+            {
+                glDeleteRenderbuffers(1, &offscreenDepthRbo_);
+                offscreenDepthRbo_ = 0;
+            }
+            if (offscreenColorTex_ != 0)
+            {
+                glDeleteTextures(1, &offscreenColorTex_);
+                offscreenColorTex_ = 0;
+            }
+            if (offscreenFBO_ != 0)
+            {
+                glDeleteFramebuffers(1, &offscreenFBO_);
+                offscreenFBO_ = 0;
+            }
+            offscreenWidth_ = 0;
+            offscreenHeight_ = 0;
+#endif
+        }
     };
 
     ExampleApplication app(config);
