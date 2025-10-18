@@ -11,6 +11,22 @@ namespace nre
 {
 class RenderAPI;
 
+enum class RenderResourceType
+{
+    ColorTarget,
+    DepthTarget,
+    UniformBuffer,
+    Texture,
+    External
+};
+
+struct RenderResourceDesc
+{
+    std::string name;
+    RenderResourceType type = RenderResourceType::External;
+    bool external = true;
+};
+
 struct FrameRenderContext
 {
     RenderAPI& renderAPI;
@@ -25,6 +41,8 @@ struct RenderPass
     std::string name;
     std::function<void(FrameRenderContext&)> setup;
     std::function<void(FrameRenderContext&)> execute;
+    std::vector<ResourceHandle> reads;
+    std::vector<ResourceHandle> writes;
     std::vector<ResourceHandle> dependencies;
     bool enabled = true;
     bool measureTime = true;
@@ -36,6 +54,7 @@ public:
     RenderGraph() = default;
 
     ResourceHandle addPass(RenderPass pass);
+    ResourceHandle addResource(RenderResourceDesc desc);
     void setPassEnabled(ResourceHandle handle, bool enabled);
     bool isPassEnabled(ResourceHandle handle) const;
     void clear();
@@ -60,7 +79,20 @@ private:
         double lastDurationMs = 0.0;
     };
 
+    struct ResourceRecord
+    {
+        ResourceHandle handle;
+        RenderResourceDesc desc;
+        ResourceHandle lastWriter;
+    };
+
+    ResourceRecord* findResource(ResourceHandle handle);
+    const ResourceRecord* findResource(ResourceHandle handle) const;
+
     std::vector<PassRecord> passes_;
+    std::vector<ResourceRecord> resources_;
     std::vector<PassStatistics> statistics_;
+    std::uint64_t nextPassId_ = 0;
+    std::uint64_t nextResourceId_ = 0;
 };
 } // namespace nre

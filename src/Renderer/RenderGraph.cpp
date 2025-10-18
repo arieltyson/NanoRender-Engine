@@ -8,9 +8,17 @@ namespace nre
 {
 namespace
 {
-ResourceHandle makeHandle(std::uint64_t id)
+constexpr std::uint64_t kPassBit = 1ull << 63;
+constexpr std::uint64_t kResourceBit = 1ull << 62;
+
+ResourceHandle makePassHandle(std::uint64_t id)
 {
-    return ResourceHandle{id};
+    return ResourceHandle{kPassBit | id};
+}
+
+ResourceHandle makeResourceHandle(std::uint64_t id)
+{
+    return ResourceHandle{kResourceBit | id};
 }
 }
 
@@ -21,10 +29,60 @@ ResourceHandle RenderGraph::addPass(RenderPass pass)
         throw std::invalid_argument("RenderGraph pass requires an execute callback.");
     }
 
-    const std::uint64_t newId = passes_.size() + 1;
-    passes_.push_back(PassRecord{makeHandle(newId), std::move(pass)});
+    const ResourceHandle handle = makePassHandle(++nextPassId_);
+
+    // Resolve resource dependencies before storing the pass.
+    std::vector<ResourceHandle> resolvedDependencies = pass.dependencies;
+    auto appendUnique = [&resolvedDependencies](ResourceHandle dependency) {
+        if (!dependency)
+        {
+            return;
+        }
+        if (std::find(resolvedDependencies.begin(), resolvedDependencies.end(), dependency) == resolvedDependencies.end())
+        {
+            resolvedDependencies.push_back(dependency);
+        }
+    };
+
+    for (const auto& resourceHandle : pass.reads)
+    {
+        auto* resource = findResource(resourceHandle);
+        if (resource == nullptr)
+        {
+            throw std::runtime_error("RenderGraph pass references unknown resource (read).");
+        }
+        if (resource->lastWriter && resource->lastWriter != handle)
+        {
+            appendUnique(resource->lastWriter);
+        }
+    }
+
+    for (const auto& resourceHandle : pass.writes)
+    {
+        auto* resource = findResource(resourceHandle);
+        if (resource == nullptr)
+        {
+            throw std::runtime_error("RenderGraph pass references unknown resource (write).");
+        }
+        if (resource->lastWriter)
+        {
+            appendUnique(resource->lastWriter);
+        }
+        resource->lastWriter = handle;
+    }
+
+    pass.dependencies = resolvedDependencies;
+
+    passes_.push_back(PassRecord{handle, std::move(pass)});
     statistics_.push_back({passes_.back().handle, passes_.back().pass.name, passes_.back().pass.enabled, 0.0});
     return passes_.back().handle;
+}
+
+ResourceHandle RenderGraph::addResource(RenderResourceDesc desc)
+{
+    const ResourceHandle handle = makeResourceHandle(++nextResourceId_);
+    resources_.push_back(ResourceRecord{handle, std::move(desc), {}});
+    return handle;
 }
 
 void RenderGraph::setPassEnabled(ResourceHandle handle, bool enabled)
@@ -72,7 +130,10 @@ bool RenderGraph::isPassEnabled(ResourceHandle handle) const
 void RenderGraph::clear()
 {
     passes_.clear();
+    resources_.clear();
     statistics_.clear();
+    nextPassId_ = 0;
+    nextResourceId_ = 0;
 }
 
 void RenderGraph::execute(FrameRenderContext& context)
@@ -145,5 +206,37 @@ void RenderGraph::execute(FrameRenderContext& context)
 
         executed.push_back(record.handle);
     }
+}
+
+RenderGraph::ResourceRecord* RenderGraph::findResource(ResourceHandle handle)
+{
+    if (!handle)
+    {
+        return nullptr;
+    }
+    for (auto& resource : resources_)
+    {
+        if (resource.handle == handle)
+        {
+            return &resource;
+        }
+    }
+    return nullptr;
+}
+
+const RenderGraph::ResourceRecord* RenderGraph::findResource(ResourceHandle handle) const
+{
+    if (!handle)
+    {
+        return nullptr;
+    }
+    for (const auto& resource : resources_)
+    {
+        if (resource.handle == handle)
+        {
+            return &resource;
+        }
+    }
+    return nullptr;
 }
 } // namespace nre

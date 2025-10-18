@@ -122,12 +122,16 @@ int main()
                 updateFrameData(bootstrap);
 
                 renderGraph_.clear();
+                frameUniformResource_ = renderGraph_.addResource({"FrameDataUBO", nre::RenderResourceType::UniformBuffer, true});
+                swapchainResource_ = renderGraph_.addResource({"SwapchainColor", nre::RenderResourceType::ColorTarget, true});
                 framePassHandle_ = renderGraph_.addPass({
                     "FrameUniforms",
                     nullptr,
                     [this](nre::FrameRenderContext& context) {
                         updateFrameData(context);
-                    }
+                    },
+                    {},
+                    {frameUniformResource_}
                 });
 
                 geometryPassHandle_ = renderGraph_.addPass({
@@ -147,7 +151,8 @@ int main()
                         mesh_->draw();
                         shader_->unbind();
                     },
-                    {framePassHandle_}
+                    {frameUniformResource_},
+                    {swapchainResource_}
                 });
 
 #if defined(NRE_USE_GLFW)
@@ -172,7 +177,9 @@ int main()
                             ImGui::Text("%.3f ms", stats.lastDurationMs);
                         }
                         ImGui::End();
-                    }
+                    },
+                    {frameUniformResource_, swapchainResource_},
+                    {swapchainResource_}
                 });
 #else
                 uiPassHandle_ = {};
@@ -409,6 +416,8 @@ int main()
         nre::ResourceHandle framePassHandle_{};
         nre::ResourceHandle geometryPassHandle_{};
         nre::ResourceHandle uiPassHandle_{};
+        nre::ResourceHandle frameUniformResource_{};
+        nre::ResourceHandle swapchainResource_{};
         nre::ShaderLoader shaderLoader_;
         std::unique_ptr<nre::TextureLoader> textureLoader_;
         std::unique_ptr<nre::MeshCache> meshCache_;
@@ -420,6 +429,3 @@ int main()
     app.run();
     return 0;
 }
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
