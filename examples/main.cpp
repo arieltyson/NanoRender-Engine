@@ -99,7 +99,7 @@ int main()
 
                 if (textureLoader_)
                 {
-                    texture_ = textureLoader_->load("assets/textures/albedo.ppm");
+                    texture_ = textureLoader_->load("assets/textures/albedo.png");
                 }
 
                 updateProjection();

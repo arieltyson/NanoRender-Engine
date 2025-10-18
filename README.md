@@ -39,6 +39,7 @@ Running `./build/examples/nanorender-example`:
 - Without GLFW → console prints `Failed to initialize rendering backend: OpenGL backend requires GLFW support but it was not detected.` and the app exits cleanly.
 - Use `W/A/S/D` to move, `Q/E` for vertical motion, and move the mouse to look around (press `Esc` to release the cursor).
 - An ImGui diagnostics overlay appears by default—watch frame time/FPS and toggle the geometry pass.
+- Textures now load via `stb_image`, so you can drop PNG/JPEG assets into `assets/textures/` and reference them from the example.
 
 ### Prerequisites 📋
 

@@ -1,30 +1,21 @@
 #include "Renderer/TextureLoader.h"
 
 #include <cstdint>
-#include <fstream>
-#include <limits>
-#include <sstream>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <vector>
+
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#endif
+#include <stb_image.h>
 
 #include "Renderer/RenderAPI.h"
 #include "Renderer/Texture.h"
 
 namespace nre
 {
-namespace
-{
-void skipComments(std::istream& stream)
-{
-    stream >> std::ws;
-    while (stream.peek() == '#')
-    {
-        stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        stream >> std::ws;
-    }
-}
-} // namespace
-
 TextureLoader::TextureLoader(RenderAPI& api) : api_(&api) {}
 
 std::shared_ptr<Texture> TextureLoader::load(const std::string& path)
@@ -42,48 +33,27 @@ std::shared_ptr<Texture> TextureLoader::load(const std::string& path)
         throw std::runtime_error("TextureLoader has no associated RenderAPI.");
     }
 
-    std::ifstream file(path, std::ios::binary);
-    if (!file)
-    {
-        throw std::runtime_error("Failed to open texture file: " + path);
-    }
-
-    std::string magic;
-    file >> magic;
-    if (magic != "P6")
-    {
-        throw std::runtime_error("Unsupported texture format (expected binary PPM P6): " + path);
-    }
-
-    skipComments(file);
     int width = 0;
     int height = 0;
-    file >> width >> height;
-    skipComments(file);
-    int maxValue = 0;
-    file >> maxValue;
-    file.get(); // consume single whitespace after header
+    int channels = 0;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-    if (width <= 0 || height <= 0 || maxValue != 255)
+    std::vector<unsigned char> rgba;
+    if (pixels == nullptr || width <= 0 || height <= 0)
     {
-        throw std::runtime_error("Invalid PPM header in texture: " + path);
+        // Fallback 2x2 checkerboard (magenta/black) so failures are obvious but non-fatal.
+        width = height = 2;
+        rgba = {
+            255, 0, 255, 255,   0, 0, 0, 255,
+            0, 0, 0, 255,       255, 0, 255, 255
+        };
     }
-
-    const std::size_t pixelCount = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
-    std::vector<unsigned char> rgb(pixelCount * 3);
-    file.read(reinterpret_cast<char*>(rgb.data()), static_cast<std::streamsize>(rgb.size()));
-    if (!file)
+    else
     {
-        throw std::runtime_error("Failed to read pixel data from texture: " + path);
-    }
-
-    std::vector<unsigned char> rgba(pixelCount * 4);
-    for (std::size_t i = 0; i < pixelCount; ++i)
-    {
-        rgba[i * 4 + 0] = rgb[i * 3 + 0];
-        rgba[i * 4 + 1] = rgb[i * 3 + 1];
-        rgba[i * 4 + 2] = rgb[i * 3 + 2];
-        rgba[i * 4 + 3] = 255;
+        const std::size_t pixelCount = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+        rgba.assign(pixels, pixels + pixelCount * 4);
+        stbi_image_free(pixels);
     }
 
     TextureDescriptor descriptor;
