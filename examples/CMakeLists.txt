@@ -7,6 +7,8 @@ target_include_directories(
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui
         ${CMAKE_CURRENT_SOURCE_DIR}/../include/ThirdParty/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../external
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include/ThirdParty/tinyobjloader
 )
 
 set_target_properties(

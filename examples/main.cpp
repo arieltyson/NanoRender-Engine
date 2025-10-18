@@ -13,6 +13,7 @@
 #include "Renderer/ShaderLoader.h"
 #include "Renderer/Texture.h"
 #include "Renderer/TextureLoader.h"
+#include <tiny_obj_loader.h>
 #include "Scene/Camera.h"
 
 #include <cmath>
@@ -93,9 +94,13 @@ int main()
                 shader_->compile();
                 shader_->bindUniformBlock("FrameData", 0);
 
-                mesh_ = meshCache_->loadFromGenerator("triangle", [] {
-                    return nre::makeTriangle();
-                });
+                mesh_ = meshCache_->loadFromFile("assets/models/triangle.obj");
+                if (!mesh_)
+                {
+                    mesh_ = meshCache_->loadFromGenerator("triangle", [] {
+                        return nre::makeTriangle();
+                    });
+                }
                 fullscreenQuad_ = meshCache_->loadFromGenerator("fullscreen_quad", [] {
                     return nre::makeFullscreenQuad();
                 });

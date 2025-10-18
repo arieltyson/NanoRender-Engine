@@ -52,6 +52,7 @@ target_include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/stb
         ${CMAKE_CURRENT_SOURCE_DIR}/../include/ThirdParty/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include/ThirdParty/tinyobjloader
 )
 
 target_sources(

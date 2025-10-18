@@ -40,6 +40,7 @@ Running `./build/examples/nanorender-example`:
 - Use `W/A/S/D` to move, `Q/E` for vertical motion, and move the mouse to look around (press `Esc` to release the cursor).
 - An ImGui diagnostics overlay appears by default—watch frame time/FPS and toggle the geometry pass.
 - Textures now load via `stb_image`, so you can drop PNG/JPEG assets into `assets/textures/` and reference them from the example.
+- Static meshes can be imported from OBJ files (see `assets/models/triangle.obj`) and are cached on load.
 - Lighting parameters (direction, color, intensity) and the new off-screen pipeline can be tweaked live from the diagnostics panel.
 
 ### Prerequisites 📋

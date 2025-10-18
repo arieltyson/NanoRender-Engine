@@ -1,5 +1,6 @@
 #include "Renderer/MeshCache.h"
 
+#include <iostream>
 #include <stdexcept>
 
 #include "Renderer/RenderAPI.h"
@@ -18,10 +19,18 @@ std::shared_ptr<Mesh> MeshCache::loadFromFile(const std::string& path)
         }
     }
 
-    const MeshData data = loadMeshFromFile(path);
-    auto mesh = createMesh(data);
-    cache_[path] = mesh;
-    return mesh;
+    try
+    {
+        const MeshData data = loadMeshFromFile(path);
+        auto mesh = createMesh(data);
+        cache_[path] = mesh;
+        return mesh;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "MeshCache: failed to load '" << path << "': " << ex.what() << '\n';
+        return nullptr;
+    }
 }
 
 std::shared_ptr<Mesh> MeshCache::loadFromGenerator(const std::string& key,
